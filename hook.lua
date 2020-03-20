@@ -1,163 +1,271 @@
-local hooks = {}
+local gmod = gmod
+local debug = debug
+local pairs = pairs
+local getmetatable = getmetatable
+local setmetatable = setmetatable
 
-local Call = function(event, gm, ...)
-	local hook = hooks[event]
-	if hook then
-		local i, n, func = 2, hook.n, nil
-		if i <= n then
-			::loop:: -- https://github.com/Facepunch/garrysmod/pull/1508#issuecomment-398231260
-			func = hook[i --[[func]]]
-			if func then
-				local a, b, c, d, e, f = func(...)
-				if a ~= nil then
-					return a, b, c, d, e, f
-				end
-				i = i + 3
-				if i <= n then
-					goto loop
-				end
-			else
-				--
-				-- hook got removed, we gotta do some work!
-				--
+module("hook")
 
-				if hook.n ~= n then
+local events = {}
+
+local NewEvent
+do
+	local Event = {}
+	local EventMeta = { __index = Event }
+
+	NewEvent = function()
+		return setmetatable({
+			n = 0,
+			keys = {},
+		}, EventMeta)
+	end
+
+	function Event:Add( name, func, object )
+
+		local pos = self.keys[ name ]
+		if ( pos ) then
+
+			--
+			-- Hook exists, just update it
+			--
+			self[ pos + 1 ] = func
+			self[ pos + 2 ] = object
+
+		else
+
+			local n = self.n
+
+			self[ n + 1 ] = name
+			self[ n + 2 ] = func
+			self[ n + 3 ] = object
+			self.keys[ name ] = n + 1 -- Keep a reference to hook position, so we can have fast hook removing/replacing
+
+			self.n = n + 3
+
+		end
+
+	end
+
+	function Event:Remove( name )
+
+		local pos = self.keys[ name ]
+		if ( pos ) then
+
+			self[ pos ] = nil --[[name]]
+			self[ pos + 1 ] = nil --[[func]]
+			self[ pos + 2 ] = nil --[[object]]
+			self.keys[ name ] = nil
+
+		end
+
+	end
+
+	function Event:GetHooks()
+
+		local hooks = {}
+		local i, n = 1, self.n
+
+		::loop::
+		local name = self[ i ]
+		if ( name ) then
+			hooks[ name ] = self[ i + 1 ] --[[func]]
+		end
+
+		i = i + 3
+		if ( i <= n ) then
+			goto loop
+		end
+
+		return hooks
+
+	end
+end
+
+do
+	--
+	-- "type" function in Garry's Mod is not jit compiled and for some reason
+	-- that idk, the hook library performs worse with it
+	--
+
+	local stringMeta = getmetatable( "" )
+	local function isstring( value )
+		return getmetatable( value ) == stringMeta
+	end
+
+	local functionMeta = getmetatable( isstring ) || {}
+	if ( !getmetatable(isstring) ) then
+		debug.setmetatable( isstring, functionMeta )
+	end
+
+	local function isfunction( value )
+		return getmetatable( value ) == functionMeta
+	end
+
+	--[[---------------------------------------------------------
+		Name: Add
+		Args: string hookName, any identifier, function func
+		Desc: Add a hook to listen to the specified event.
+	-----------------------------------------------------------]]
+	function Add( event_name, name, func )
+
+		if ( !isstring( event_name ) ) then return end
+		if ( !isfunction( func ) ) then return end
+		if ( !name ) then return end
+
+		local object = false
+		if ( !isstring( name ) ) then
+			object = name
+		end
+
+		local event = events[ event_name ]
+		if ( !event ) then
+			event = NewEvent()
+			events[ event_name ] = event
+		end
+
+		event:Add( name, func, object )
+
+	end
+end
+
+--[[---------------------------------------------------------
+	Name: Remove
+	Args: string hookName, identifier
+	Desc: Removes the hook with the given indentifier.
+-----------------------------------------------------------]]
+function Remove( event_name, name )
+
+	local event = events[ event_name ]
+	if ( event ) then
+		event:Remove( name )
+	end
+
+end
+
+--[[---------------------------------------------------------
+	Name: GetTable
+	Desc: Returns a table of all hooks.
+-----------------------------------------------------------]]
+function GetTable()
+
+	local new_events = {}
+
+	for event_name, event in pairs( events ) do
+
+		new_events[ event_name ] = event:GetHooks()
+
+	end
+
+	return new_events
+
+end
+
+--[[---------------------------------------------------------
+	Name: Call
+	Args: string hookName, table gamemodeTable, vararg args
+	Desc: Calls hooks associated with the hook name.
+-----------------------------------------------------------]]
+function Call( event_name, gm, ... )
+
+	local event = events[ event_name ]
+	if ( event ) then
+
+		local i, n = 2, event.n
+
+		::loop:: -- https://github.com/Facepunch/garrysmod/pull/1508#issuecomment-398231260
+		local func = event[ i ]
+		if ( func ) then
+
+			local object = event[ i + 1 ]
+			if ( object ) then
+
+				if ( object.IsValid && object:IsValid() ) then
 					--
-					-- a new hook was added while the hook is running, we will replace it with the removed one and continue without calling it
+					-- The object is valid - pass it as the first argument (self)
 					--
-
-					local n_2 = hook.n
-					--[[name]] --[[func]] --[[real_func]]
-					hook[i - 1], hook[i], hook[i + 1] = hook[n_2 - 2], hook[n_2 - 1], hook[n_2]
-					hook[n_2 - 2], hook[n_2 - 1], hook[n_2] = nil, nil, nil
-					i = i + 3
+					local a, b, c, d, e, f = func( object, ... )
+					if ( a != nil ) then
+						return a, b, c, d, e, f
+					end
 				else
 					--
-					-- replace the removed hook with the last hook in the table and repeat the loop, if it's the last one then it's gonna be nil and the loop will stop
+					-- The object has become invalid - remove it
 					--
-
-					--[[name]] --[[func]] --[[real_func]]
-					hook[i - 1], hook[i], hook[i + 1] = hook[n - 2], hook[n - 1], hook[n]
-					hook[n - 2], hook[n - 1], hook[n] = nil, nil, nil
-					n = n - 3
+					event:Remove( event[ i - 1 ] --[[name]] )
 				end
 
-				hook.n = hook.n - 3
-
-				if i <= n then
-					goto loop
-				end
-			end
-		end
-	end
-
-	if gm then
-		local gm_func = gm[event]
-		if gm_func then
-			return gm_func(gm, ...)
-		end
-	end
-end
-
-local gmod = gmod
-local Run = function(name, ...)
-	return Call(name, gmod and gmod.GetGamemode() or nil, ...)
-end
-
-local Hook = {}
-do
-	local hook_methods = {}
-	local hook_meta = {__index = hook_methods}
-
-	function Hook.new(event)
-		local hook = setmetatable({}, hook_meta)
-		hooks[event] = hook
-		return hook
-	end
-
-	--
-	-- it's efficient to store it like this so we don't have to index 2 tables in hook.Call: hook[i + 1] > hook[i]["func"]
-	-- but I could be wrong and idc
-	--
-	function hook_methods:add(name, func, real_func)
-		local n = self.n or 0
-
-		for i = 1, n, 3 do
-			if self[i --[[name]]] == name then
-				self[i + 1 --[[func]]] = func
-				self[i + 2 --[[real_func]]] = real_func
-				return
-			end
-		end
-
-		self[n + 1 --[[name]]] = name
-		self[n + 2 --[[func]]] = func
-		self[n + 3 --[[real_func]]] = real_func
-
-		self.n = n + 3
-	end
-
-	function hook_methods:remove(name)
-		for i = 1, self.n, 3 do
-			if self[i --[[name]]] == name then
-				self[i --[[name]]] = nil
-				self[i + 1 --[[func]]] = nil
-				self[i + 2 --[[real_func]]] = nil
-				break
-			end
-		end
-	end
-end
-
-local IsValid = IsValid
-local Add = function(event, name, func)
-	if not isstring(event) or not isfunction(func) then return end
-	local hook = hooks[event] or Hook.new(event)
-	local real_func = func
-	if not isstring(name) then
-		--
-		-- took this idea (which is really great) from https://github.com/meepen/gmod-hooks-revamped/blob/486e9672762f8901d83c52794145955f01b93431/newhook.lua#L83
-		--
-		func = function(...)
-			if IsValid(name) then
-				return real_func(name, ...)
 			else
-				hook:remove(name)
+				local a, b, c, d, e, f = func( ... )
+				if ( a != nil ) then
+					return a, b, c, d, e, f
+				end
 			end
-		end
-	end
-	hook:add(name, func, real_func)
-end
 
-local Remove = function(event, name)
-	if isstring(event) then
-		local hook = hooks[event]
-		if hook then
-			hook:remove(name)
-		end
-	end
-end
+			i = i + 3
 
-local GetTable = function()
-	local new_hooks = {}
-	for event_name, event_table in pairs(hooks) do
-		local event = {}
-		for i = 1, event_table.n, 3 do
-			local name = event_table[i --[[name]]]
-			if name then
-				event[name] = event_table[i + 2 --[[real_func]]]
+		else
+
+			--
+			-- hook got removed, we gotta do some work!
+			--
+
+			local _n, _i = n, i
+
+			if ( event.n != n ) then
+				-- a new hook was added while "Call" is running, we will replace
+				-- the removed one with it and continue without calling it
+				_n = event.n
+				i = i + 3
+			else
+				-- replace the removed hook with the last hook in the table and repeat the loop
+				n = n - 3
 			end
+
+			local new_name = event[_n - 2 --[[name]]]
+			if ( new_name ) then
+
+				--[[name]] --[[func]] --[[object]]
+				event[ _i - 1 ], event[ _i ], event[ _i + 1 ] = new_name, event[ _n - 1 ], event[ _n ]
+				event[ _n - 2 ], event[ _n - 1 ], event[ _n ] = nil, nil, nil
+				event.keys[ new_name ] = _i - 1 -- update hook position
+
+			end
+
+			event.n = event.n - 3
+
+			--
+			-- no hooks, so no need to keep it in the events table!
+			--
+			if ( event.n == 0 ) then
+				events[ event_name ] = nil
+			end
+
 		end
-		new_hooks[event_name] = event
+
+		if ( i <= n ) then
+			goto loop
+		end
+
 	end
-	return new_hooks
+
+	--
+	-- Call the gamemode function
+	--
+
+	if ( !gm ) then return end
+
+	local GamemodeFunction = gm[event_name]
+	if ( !GamemodeFunction ) then return end
+
+	return GamemodeFunction( gm, ... )
+
 end
 
-hook = {
-	GetTable = GetTable,
-	Add = Add,
-	Remove = Remove,
-	Call = Call,
-	Run = Run,
-	Author = "Srlion"
-}
+--[[---------------------------------------------------------
+	Name: Run
+	Args: string hookName, vararg args
+	Desc: Calls hooks associated with the hook name.
+-----------------------------------------------------------]]
+function Run( name, ... )
+	return Call( name, gmod && gmod.GetGamemode() || nil, ... )
+end
