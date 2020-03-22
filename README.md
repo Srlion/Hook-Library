@@ -10,27 +10,34 @@ Thanks to [Meepen](https://www.gmodstore.com/users/76561198050165746) for his [h
 ## Benchmarks
 
 ```
-CallInvalid (200 calls) (don't mind this one because it does not get called a lot in real-life usage)
-Default:  0.001595900 s
-Srlion: 0.009774000 s
-Default is 512.44% faster
+Srlion's New Lib...
+Srlion's New Lib took 0.511766100 s
+
+Default Lib...
+Default Lib took 14.408792900 s
+
+BENCHMARK
+CallInvalid (500 calls)
+Srlion's New Lib (218.29% faster)
+Default Lib:      0.005260700 s
+Srlion's New Lib: 0.001652800 s
 -------------
 CallNoHooks (200000000 calls)
-Default:  0.096520000 s
-Srlion: 0.049093400 s
-Srlion's is 96.60% faster
+Default Lib (1.36% faster)
+Default Lib:      0.213272500 s
+Srlion's New Lib: 0.216162900 s
 -------------
 CallGMOnly (200000000 calls)
-Default:  0.098468600 s
-Srlion: 0.048702000 s
-Srlion's is 102.19% faster
+Default Lib (2.97% faster)
+Default Lib:      0.215109900 s
+Srlion's New Lib: 0.221490100 s
 -------------
 CallNoGM (32000000 calls)
-Default:  5.810043300 s
-Srlion: 0.015754100 s
-Srlion's is 36779.56% faster
+Srlion's New Lib (19258.95% faster)
+Default Lib:      6.825907900 s
+Srlion's New Lib: 0.035259700 s
 -------------
 CallGM (32000000 calls)
-Default:  6.230169500 s
-Srlion: 0.008089000 s
-Srlion's is 76920.27% faster
+Srlion's New Lib (19239.46% faster)
+Default Lib:      7.149178400 s
+Srlion's New Lib: 0.036966800 s
