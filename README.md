@@ -3,6 +3,9 @@ This is a simple, realible, fast and optimized hook library for Garry's Mod.
 It's well tested and will not mess anything when added to your server.
 It can/should improve your server performance.
 
+# Installation
+Add this in: addons/custom_hook/lua/includes/modules/hook.lua
+
 [Steam Workhop](https://steamcommunity.com/sharedfiles/filedetails/?id=1907060869)
 
 Thanks to [Meepen](https://www.gmodstore.com/users/76561198050165746) for his [hook library](https://github.com/meepen/gmod-hooks-revamped/blob/master/newhook.lua) because im using some ideas from it and inspired me to make this :D
