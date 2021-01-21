@@ -53,18 +53,10 @@ function Add(event_name, name, func)
 	local event = events[event_name]
 	if not event then
 		event = {
-			func,
-			data = {
-				[name] = {
-					real_func = real_func,
-					pos = 1
-				}
-			},
-			n = 1,
+			data = {},
+			n = 0
 		}
 		events[event_name] = event
-
-		return
 	end
 
 	local hook = event.data[name]
