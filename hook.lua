@@ -11,10 +11,17 @@ local to_remove = {}
 timer.Create("SrlionHookLibrary", 5, 0, function()
 	for i = #to_remove, 1, -1 do
 		local v = to_remove[i]
-		local event = v.event
+		to_remove[i] = nil
 
-		local pos = event.data[v.name].pos
-		for _, hook in pairs(event.data) do
+		if not v then
+			continue
+		end
+
+		local event = v.event
+		local data = event.data
+
+		local pos = data[v.name].pos
+		for _, hook in pairs(data) do
 			if (hook.pos > pos) then
 				hook.pos = hook.pos - 1
 			end
@@ -22,9 +29,7 @@ timer.Create("SrlionHookLibrary", 5, 0, function()
 		remove(event, pos)
 
 		event.n = event.n - 1
-		event.data[v.name] = nil
-
-		to_remove[i] = nil
+		data[v.name] = nil
 	end
 end)
 
@@ -62,7 +67,7 @@ function Add(event_name, name, func)
 	local hook = event.data[name]
 	if hook then
 		if hook.removed then
-			remove(to_remove, hook.removed)
+			to_remove[hook.removed] = nil
 			hook.removed = nil
 		end
 
