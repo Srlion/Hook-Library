@@ -5,9 +5,13 @@ local isstring = isstring
 local isfunction = isfunction
 local insert = table.insert
 
-module("hook")
+HOOK_MONITOR_HIGH = 1
+HOOK_HIGH = 2
+HOOK_NORMAL = 3
+HOOK_LOW = 4
+HOOK_MONITOR_LOW = 5
 
-MONITOR_HIGH, HIGH, NORMAL, LOW, MONITOR_LOW = 1, 2, 3, 4, 5
+module("hook")
 
 local events = {}
 
@@ -101,11 +105,11 @@ function Add(event_name, name, func, priority)
 	end
 
 	if not priority then
-		priority = NORMAL
-	elseif priority < MONITOR_HIGH then
-		priority = MONITOR_HIGH
-	elseif priority > MONITOR_LOW then
-		priority = MONITOR_LOW
+		priority = HOOK_NORMAL
+	elseif priority < HOOK_MONITOR_HIGH then
+		priority = HOOK_MONITOR_HIGH
+	elseif priority > HOOK_MONITOR_LOW then
+		priority = HOOK_MONITOR_LOW
 	end
 
 	local event = events[event_name]
@@ -136,7 +140,7 @@ function Add(event_name, name, func, priority)
 		return
 	end
 
-	if priority == MONITOR_LOW then
+	if priority == HOOK_MONITOR_LOW then
 		local n = event.n
 		event[n + 1] = name
 		event[n + 2] = func
