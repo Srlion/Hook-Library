@@ -28,60 +28,60 @@ Thanks to [Meepen](https://www.gmodstore.com/users/76561198050165746) for his [h
 ### Jit On
 ```
 Srlion's Lib...
-Srlion's Lib took 0.113439200 s
+Srlion's Lib took 0.067895000 s
 
 Default Lib...
-Default Lib took 2.034281600 s
+Default Lib took 1.589598100 s
 
 -------------
-CallNoHooks (20000000 calls)
-Srlion's Lib (1.16% faster)
-Default Lib:  0.020502000 s
-Srlion's Lib: 0.020266400 s
--------------
 CallGMOnly (20000000 calls)
-Srlion's Lib (3.04% faster)
-Default Lib:  0.031323000 s
-Srlion's Lib: 0.030400000 s
+Default Lib (1.87% faster)
+Default Lib:  0.039815600 s
+Srlion's Lib: 0.040561900 s
 -------------
 CallNoGM (3200000 calls)
-Srlion's Lib (30488.68% faster)
-Default Lib:  1.021784100 s
-Srlion's Lib: 0.003340400 s
+Srlion's Lib (19409.60% faster)
+Default Lib:  0.741989100 s
+Srlion's Lib: 0.003803200 s
+-------------
+CallNoHooks (20000000 calls)
+Default Lib (0.23% faster)
+Default Lib:  0.019999400 s
+Srlion's Lib: 0.020045400 s
 -------------
 CallGM (3200000 calls)
-Srlion's Lib (28420.08% faster)
-Default Lib:  0.956363700 s
-Srlion's Lib: 0.003353300 s
+Srlion's Lib (23540.47% faster)
+Default Lib:  0.787747700 s
+Srlion's Lib: 0.003332200 s
 -------------
 ```
 ### Jit Off
 ```
 Srlion's Lib...
-Srlion's Lib took 3.215370000 s
+Srlion's Lib took 2.151561600 s
 
 Default Lib...
-Default Lib took 4.222064900 s
+Default Lib took 2.774747700 s
 
 -------------
-CallNoHooks (20000000 calls)
-Default Lib (4.91% faster)
-Default Lib:  0.429621100 s
-Srlion's Lib: 0.450715900 s
--------------
 CallGMOnly (20000000 calls)
-Srlion's Lib (0.54% faster)
-Default Lib:  0.695163200 s
-Srlion's Lib: 0.691419400 s
+Default Lib (0.01% faster)
+Default Lib:  0.677981500 s
+Srlion's Lib: 0.678061100 s
 -------------
 CallNoGM (3200000 calls)
-Srlion's Lib (61.58% faster)
-Default Lib:  1.538600300 s
-Srlion's Lib: 0.952240700 s
+Srlion's Lib (60.90% faster)
+Default Lib:  0.833078200 s
+Srlion's Lib: 0.517748400 s
+-------------
+CallNoHooks (20000000 calls)
+Srlion's Lib (0.69% faster)
+Default Lib:  0.406495000 s
+Srlion's Lib: 0.403708900 s
 -------------
 CallGM (3200000 calls)
-Srlion's Lib (56.35% faster)
-Default Lib:  1.554477600 s
-Srlion's Lib: 0.994227400 s
+Srlion's Lib (55.29% faster)
+Default Lib:  0.857146200 s
+Srlion's Lib: 0.551969900 s
 -------------
 ```
