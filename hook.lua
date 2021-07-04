@@ -8,11 +8,11 @@ local insert = table.insert
 
 -- I just do this so glua-lint doesn't rage at me
 do
-	_G["HOOK_MONITOR_HIGH"] = 1
-	_G["HOOK_HIGH"] = 2
-	_G["HOOK_NORMAL"] = 3
-	_G["HOOK_LOW"] = 4
-	_G["HOOK_MONITOR_LOW"] = 5
+	_G.HOOK_MONITOR_HIGH = -2
+	_G.HOOK_HIGH = -1
+	_G.HOOK_NORMAL = 0
+	_G.HOOK_LOW = 1
+	_G.HOOK_MONITOR_LOW = 2
 end
 
 local HOOK_MONITOR_HIGH = HOOK_MONITOR_HIGH
@@ -120,6 +120,14 @@ function Add(event_name, name, func, priority)
 		priority = HOOK_MONITOR_HIGH
 	elseif priority > HOOK_MONITOR_LOW then
 		priority = HOOK_MONITOR_LOW
+	end
+
+	-- disallow returning in monitor hooks
+	if priority == HOOK_MONITOR_HIGH or priority == HOOK_MONITOR_LOW then
+		local _func = func
+		func = function(...)
+			_func(...)
+		end
 	end
 
 	local event = events[event_name]
