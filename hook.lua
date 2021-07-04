@@ -4,6 +4,7 @@ local setmetatable = setmetatable
 local isstring = isstring
 local isfunction = isfunction
 local insert = table.insert
+local rawget = rawget
 
 module("hook")
 
