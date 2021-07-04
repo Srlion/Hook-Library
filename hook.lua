@@ -4,7 +4,6 @@ local setmetatable = setmetatable
 local isstring = isstring
 local isfunction = isfunction
 local insert = table.insert
-local rawget = rawget
 
 module("hook")
 
@@ -21,23 +20,61 @@ local function find_hook(event, name)
 	end
 end
 
-local function copy_event(event)
+--[[
+	we are making a new event table so we don't mess up anything
+	when adding/removing hooks while hook.Call is running, this is how it works:
+
+	1- When (adding/removing a hook)/(editing a hook priority), we create a new event table to avoid messing up hook.Call call order if it's running,
+	and the old event table will be shadowed and can only be accessed from hook.Call if it's running
+	2- We make old event table have __index method to make sure if any hook got removed/edited we (stop it from running)/(run the new function)
+]]
+local function copy_event(event, event_name)
 	local new_event = {}
-	for i = 1, event.n do
-		local v = event[i]
-		if v then
-			insert(new_event, v)
-		end
-	end
-	new_event.n = #new_event
-	setmetatable(event, {
-		__index = function(_, key)
-			local name = rawget(event, key - 1)
-			if name and find_hook(new_event, name) then
-				return rawget(event, key)
+	do
+		for i = 1, event.n do
+			local v = event[i]
+			if v then
+				insert(new_event, v)
 			end
 		end
+		new_event.n = #new_event
+	end
+
+	-- we use proxies here just to make __index work
+	-- https://stackoverflow.com/a/3122136
+	local proxy = {}
+	do
+		for i = 1, event.n do
+			proxy[i] = event[i]
+			event[i] = nil
+		end
+		proxy.n = event.n
+		event.n = nil
+	end
+
+	setmetatable(event, {
+		__index = function(_, key)
+			-- make event.n work
+			if isstring(key) then
+				return proxy[key]
+			end
+
+			local name = proxy[key - 1]
+			if not name then return end
+
+			local parent = events[event_name]
+
+			-- if hook got removed then don't run it
+			local pos = find_hook(parent, name)
+			if not pos then return end
+
+			-- if hook priority changed then it should be treated as a new hook, don't run it
+			if parent[pos + 3 --[[priority]]] ~= proxy[key + 2 --[[priority]]] then return end
+
+			return parent[pos + 1]
+		end
 	})
+
 	return new_event
 end
 
@@ -82,9 +119,11 @@ function Add(event_name, name, func, priority)
 	local pos
 	if event then
 		local _pos = find_hook(event, name)
+		-- if hook exists and priority changed then remove the old one because it has to be treated as a new hook
 		if _pos and event[_pos + 3] ~= priority then
 			Remove(event_name, name)
 		else
+			-- just update the hook here because nothing changed but the function
 			pos = _pos
 		end
 	end
@@ -141,7 +180,7 @@ function Remove(event_name, name)
 		event[pos + 3] = nil --[[priority]]
 	end
 
-	events[event_name] = copy_event(event)
+	events[event_name] = copy_event(event, event_name)
 end
 
 --[[---------------------------------------------------------
