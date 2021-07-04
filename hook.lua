@@ -6,6 +6,7 @@ local isnumber = isnumber
 local isfunction = isfunction
 local insert = table.insert
 
+-- I just do this so glua-lint doesn't rage at me
 do
 	_G["HOOK_MONITOR_HIGH"] = 1
 	_G["HOOK_HIGH"] = 2
