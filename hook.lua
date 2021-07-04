@@ -185,14 +185,18 @@ end
 function Call(event_name, gm, ...)
 	local event = events[event_name]
 	if event then
-		for i = 2, event.n, 4 do
-			local func = event[i]
-			if func then
-				local a, b, c, d, e, f = func(...)
-				if a ~= nil then
-					return a, b, c, d, e, f
-				end
+		local i, n = 2, event.n
+		::loop::
+		local func = event[i]
+		if func then
+			local a, b, c, d, e, f = func(...)
+			if a ~= nil then
+				return a, b, c, d, e, f
 			end
+		end
+		i = i + 4
+		if i <= n then
+			goto loop
 		end
 	end
 
