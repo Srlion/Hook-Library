@@ -2,6 +2,7 @@ local gmod = gmod
 local pairs = pairs
 local setmetatable = setmetatable
 local isstring = isstring
+local isnumber = isnumber
 local isfunction = isfunction
 local insert = table.insert
 
@@ -104,7 +105,7 @@ function Add(event_name, name, func, priority)
 		end
 	end
 
-	if not priority then
+	if not isnumber(priority) then
 		priority = HOOK_NORMAL
 	elseif priority < HOOK_MONITOR_HIGH then
 		priority = HOOK_MONITOR_HIGH
