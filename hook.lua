@@ -1,22 +1,9 @@
 local gmod = gmod
-local debug = debug
 local pairs = pairs
-local getmetatable = getmetatable
 local setmetatable = setmetatable
+local isstring = isstring
+local isfunction = isfunction
 local insert = table.insert
-
-local stringMeta = getmetatable("")
-local function isstring(value)
-	return getmetatable(value) == stringMeta
-end
-
-local functionMeta = getmetatable(isstring) or {}
-if not getmetatable(isstring) then
-	debug.setmetatable(isstring, functionMeta)
-end
-local function isfunction(value)
-	return getmetatable(value) == functionMeta
-end
 
 module("hook")
 
