@@ -6,11 +6,19 @@ local isnumber = isnumber
 local isfunction = isfunction
 local insert = table.insert
 
-HOOK_MONITOR_HIGH = 1
-HOOK_HIGH = 2
-HOOK_NORMAL = 3
-HOOK_LOW = 4
-HOOK_MONITOR_LOW = 5
+do
+	_G["HOOK_MONITOR_HIGH"] = 1
+	_G["HOOK_HIGH"] = 2
+	_G["HOOK_NORMAL"] = 3
+	_G["HOOK_LOW"] = 4
+	_G["HOOK_MONITOR_LOW"] = 5
+end
+
+local HOOK_MONITOR_HIGH = HOOK_MONITOR_HIGH
+local HOOK_HIGH = HOOK_HIGH
+local HOOK_NORMAL = HOOK_NORMAL
+local HOOK_LOW = HOOK_LOW
+local HOOK_MONITOR_LOW = HOOK_MONITOR_LOW
 
 module("hook")
 
