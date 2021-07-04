@@ -1,3 +1,6 @@
+# PLEASE TEST
+Need to make sure it's working without issues before releasing it on workshop and add support for ulx, please test!
+
 # Hook-Library
 This is a simple, realible, fast and optimized hook library for Garry's Mod.
 It's well tested and will not mess anything when added to your server.
