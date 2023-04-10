@@ -5,6 +5,7 @@ local isstring = isstring
 local isnumber = isnumber
 local isfunction = isfunction
 local insert = table.insert
+local tostring = tostring
 
 -- I just do this so glua-lint doesn't rage at me
 do
@@ -217,7 +218,7 @@ function GetTable()
 		for i = 1, event.n, 4 do
 			local name = event[i]
 			if name then
-				hooks[name] = event[i + 2] --[[real_func]]
+				hooks[tostring(name)] = event[i + 2] --[[real_func]]
 			end
 		end
 		new_events[event_name] = hooks
