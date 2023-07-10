@@ -3,6 +3,7 @@ local pairs = pairs
 local setmetatable = setmetatable
 local isstring = isstring
 local isnumber = isnumber
+local isbool = isbool
 local isfunction = isfunction
 local insert = table.insert
 
