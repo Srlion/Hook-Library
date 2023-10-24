@@ -7,6 +7,7 @@ local isbool = isbool
 local isfunction = isfunction
 local insert = table.insert
 local IsValid = IsValid
+local type = type
 
 -- I just do this so glua-lint doesn't rage at me
 do
