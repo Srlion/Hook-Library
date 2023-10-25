@@ -8,6 +8,7 @@ local isfunction = isfunction
 local insert = table.insert
 local IsValid = IsValid
 local type = type
+local ErrorNoHaltWithStack = ErrorNoHaltWithStack
 
 -- I just do this so glua-lint doesn't rage at me
 do
