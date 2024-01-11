@@ -31,6 +31,7 @@ local POST_HOOK = {2}; _G.POST_HOOK = POST_HOOK
 module("hook")
 
 Author = "Srlion"
+Version = "1.0.0"
 
 local events = {}
 --[=[
