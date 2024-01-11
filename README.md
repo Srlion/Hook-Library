@@ -51,6 +51,7 @@ end, PRE_HOOK_RETURN)
 This allows for the modification of results returned from preceding hooks!
 ```lua
 -- arguments = {[1] = hook_name, [2] = returned_value_1, [3] = returned_value_2, ...etc}
+-- hook_name can be the gamemode table that was passed to hook.Call
 hook.Add("PlayerSay", "post_return_player_say", function(arguments, sender, text)
 	local hook_name = arguments[1] -- This is the name of the hook that gave back a result.
 	local returned_string = arguments[2]
@@ -65,6 +66,7 @@ end, POST_HOOK_RETURN)
 This primarily serves as a logging hook.
 ```lua
 -- arguments = {[1] = hook_name, [2] = returned_value_1, [3] = returned_value_2, ...etc}
+-- hook_name can be the gamemode table that was passed to hook.Call
 hook.Add("PlayerSay", "post_player_say", function(arguments, sender, text)
 	local hook_name = arguments[1] -- This is the name of the hook that gave back a result.
 	local returned_string = arguments[2]
