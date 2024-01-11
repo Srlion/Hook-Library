@@ -31,7 +31,7 @@ local POST_HOOK = {2}; _G.POST_HOOK = POST_HOOK
 module("hook")
 
 Author = "Srlion"
-Version = "1.0.0"
+Version = "1.0.1"
 
 local events = {}
 --[=[
@@ -201,9 +201,8 @@ function Remove(event_name, name)
 		event[pos + 1] = nil --[[func]]
 		event[pos + 2] = nil --[[real_func]]
 		event[pos + 3] = nil --[[priority]]
+		events[event_name] = copy_event(event, event_name)
 	end
-
-	events[event_name] = copy_event(event, event_name)
 end
 
 local hook_Remove = Remove
