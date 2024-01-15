@@ -1,15 +1,19 @@
-#### Thanks to [Meepen](https://www.gmodstore.com/users/76561198050165746) for his [hook library](https://github.com/meepen/gmod-hooks-revamped/blob/master/newhook.lua) because im using some ideas from it and inspired me to make this <3
-
-------------
-
-# [Steam Workhop](https://steamcommunity.com/sharedfiles/filedetails/?id=1907060869)
-##### Latest update is not on workshop yet, need to make sure that everything is working as intended to not kill lots of servers.
-
-
 # Srlion's Hook Library
 This is a ~~simple~~<sup>rip 2020~2021</sup> fat, realible, fast and optimized hook library for Garry's Mod.
 It's well tested and will not mess anything when added to your server.
 It **will** improve your server performance.
+
+#### Thanks to [Meepen](https://www.gmodstore.com/users/76561198050165746) for his [hook library](https://github.com/meepen/gmod-hooks-revamped/blob/master/newhook.lua) because im using some ideas from it and inspired me to make this <3
+
+------------
+
+# Ulx support!
+Now you can just drop it in your server and will replace ULib's hook library!
+But you will have to watch for warnings that could appear if an addon tries to modify
+```hook.GetULibTable``` directly to fix it.
+
+# [Steam Workhop](https://steamcommunity.com/sharedfiles/filedetails/?id=1907060869)
+##### Latest update is not on workshop yet, need to make sure that everything is working as intended to not kill lots of servers.
 
 # Installation
 Add this in: **addons/custom_hook/lua/includes/modules/hook.lua**
@@ -74,57 +78,42 @@ hook.Add("PlayerSay", "post_player_say", function(arguments, sender, text)
 end, POST_HOOK)
 ```
 
-# Benchmarks
+# Benchmark
 #### Using [this simple hook caller](https://github.com/Srlion/gmod-rs-simple-hook-test/tree/master) to do C++ -> Lua hook.Call
 
-### Both tests with jit.off()
-
-## 1
 ```lua
-for i = 1, 999 do
-	hook.Add("HOOK_CALL_TEST", tostring(i), function(arg)
-	end)
-end
-```
-```
-Srlion's hook.Call: 1.12 ~ 1.14 second+
-Default's hook.Call: 2.20 ~ 2.40 seconds
-```
+require("hooktest")
 
-Around 49~50% faster than default's hook.Call!
-> yeah yeah but this is a test with an empty function, hook.Call won't make a difference on my server bla bla bla
+concommand.Add("hooktest", function()
+	local insert = table.insert
+	local tbl = {}
+	for i = 1, 200 do
+		hook.Add("HOOK_CALL_TEST", tostring(i), function(arg)
+			insert(tbl, i)
+		end)
+	end
 
-## 2
-```lua
-local insert = table.insert
-local tbl = {}
-for i = 1, 500 do
-	hook.Add("HOOK_CALL_TEST", tostring(i), function(arg)
-		insert(tbl, i)
-	end)
-end
+	print("Started hook bench test...")
+	local time = HOOK_CALL_TEST()
+	print("hook.Call: " .. time .. "s")
+	print("~!")
+end)
 ```
 
 ```
-Srlion's hook.Call: 5.62 ~ 5.65 seconds
-Default's hook.Call: 6.4 ~ 6.6 seconds
+It's an average time for running the test 6 times
+
+Srlion's hook.Call: 4.4750 seconds
+	52.95% faster than default hook.Call
+	130.84% faster than DLib's hook.Call
+
+Default's hook.Call: 6.8447 seconds
+	50.92% faster than DLib's hook.Call
+
+DLib's hook.Call: 10.3301 seconds
 ```
-### Around 13% faster!!!!!!
+### Around 52% faster!!!!!!
 #### Hey, you're just boosting your server for free! No drawbacks, only extra goodies!
 #### Imagine how many hooks get called every frame/second when you have 128 players in your server!
 
-# Tested On
-
-## CPU
-- Model: Intel(R) Core(TM) i7-12700KF
-- Cores: 12
-- Threads: 24
-
-## Memory
-- Total RAM: 32 GB
-- RAM Type: DDR4
-- Clock: 2667MHz
-
-## Operating System
-- Distribution: Linux Mint
-- Kernel Version: Linux 5.15.0-91-generic
+# Tested On [Physgun](https://billing.physgun.com/aff.php?aff=131) Dev Server

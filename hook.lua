@@ -8,12 +8,15 @@ local isfunction = isfunction
 local insert = table.insert
 local IsValid = IsValid
 local type = type
+local ErrorNoHalt = ErrorNoHalt
 local ErrorNoHaltWithStack = ErrorNoHaltWithStack
 -- local assert = assert
 -- local table = table
 -- local tostring = tostring
 -- local pcall = pcall
--- local print = print
+local print = print
+local timer = timer
+local file = file
 -- local error = error
 
 --[[
@@ -21,19 +24,84 @@ local ErrorNoHaltWithStack = ErrorNoHaltWithStack
 	because when i try to modify a single thing, something breaks and i dont notice it, so i try to remind myself as much as possible
 ]]
 
--- i make them tables to force people to use them for readability, so people dont do stuff like hook.Add(event, name, func, -2 or 1)
-local PRE_HOOK = {-2}; _G.PRE_HOOK = PRE_HOOK
-local PRE_HOOK_RETURN = {-1}; _G.PRE_HOOK_RETURN = PRE_HOOK_RETURN
-local NORMAL_HOOK = {0}; _G.NORMAL_HOOK = NORMAL_HOOK
-local POST_HOOK_RETURN = {1}; _G.POST_HOOK_RETURN = POST_HOOK_RETURN
-local POST_HOOK = {2}; _G.POST_HOOK = POST_HOOK
+local PRE_HOOK = -2; _G.PRE_HOOK = PRE_HOOK
+local PRE_HOOK_RETURN = -1; _G.PRE_HOOK_RETURN = PRE_HOOK_RETURN
+local NORMAL_HOOK = 0; _G.NORMAL_HOOK = NORMAL_HOOK
+local POST_HOOK_RETURN = 1; _G.POST_HOOK_RETURN = POST_HOOK_RETURN
+local POST_HOOK = 2; _G.POST_HOOK = POST_HOOK
+
+-- ulib addons support
+HOOK_MONITOR_HIGH = PRE_HOOK
+HOOK_HIGH = PRE_HOOK_RETURN
+HOOK_NORMAL = NORMAL_HOOK
+HOOK_LOW = POST_HOOK_RETURN
+HOOK_MONITOR_LOW = POST_HOOK
+
+local global_table = _G
 
 module("hook")
 
-Author = "Srlion"
-Version = "1.0.1"
-
 local events = {}
+
+do
+	-- ulx/ulib support
+	if file.Exists("ulib/shared/hook.lua", "LUA") then
+		local old_include = global_table.include
+		function global_table.include(f, ...)
+			if f == "ulib/shared/hook.lua" then
+				timer.Simple(0, function()
+					print("Srlion Hook Library: Stopped ULX/ULib from loading it's hook library!")
+				end)
+				global_table.include = old_include
+				return
+			end
+			return old_include(f, ...)
+		end
+
+		function GetULibTable()
+			local new_events = {}
+
+			for event_name, event in pairs(events) do
+				local hooks = {[-2] = {}, [-1] = {}, [0] = {}, [1] = {}, [2] = {}}
+				-- event starts with 4 because event[1] is the number of hooks in the event table, ...etc
+				for i = 4, event[1] --[[hook_count]], 4 do
+					local name = event[i]
+					if name then
+						local priority = event[i + 3]
+						hooks[priority][name] = event[i + 2] --[[real_func]]
+					end
+				end
+				new_events[event_name] = hooks
+			end
+
+			local monitor_ulib_events = {}
+			setmetatable(monitor_ulib_events, {
+				__newindex = function(_, key, value)
+					ErrorNoHaltWithStack("An addon is trying to modify ULib Table directly, use this trace to find the addon and fix it!")
+					new_events[key] = value
+				end,
+				__index = function(_, key)
+					return new_events[key]
+				end
+			})
+
+			return monitor_ulib_events
+		end
+	end
+
+	-- bloated hooks warning
+	if file.Exists("dlib/modules/hook.lua", "LUA") then
+		timer.Simple(0, function()
+			ErrorNoHalt("Srlion Hook Library: DLib is installed, you should remove the bloated addon!\n")
+			ErrorNoHalt("Srlion Hook Library: Billy's relies on Srlion's Hook library so you shouldn't be having DLib! (BLOATED ADDON)\n")
+			ErrorNoHalt("Srlion Hook Library: DLIB is also slower than default hook library, check github.com/srlion/Hook-Library for more info! THIS MEANS IT MAKES YOUR SERVER SLOWER!\n")
+		end)
+	end
+end
+
+Author = "Srlion"
+Version = "1.0.2"
+
 --[=[
 	events[event_name] = {
 		1 => 20 (hook_count)
@@ -46,27 +114,27 @@ local events = {}
 		4 =>	a (name)
 		5 =>	function: 0xf (func)
 		6 =>	function: 0xf (real_func)
-		7 =>	table: 0xf (priority)
+		7 =>	0 (priority)
 
 		8 =>	c
 		9 =>	function: 0xf
 		10 =>	function: 0xf
-		11 =>	table: 0xf
+		11 =>	0
 
 		12 =>	b
 		13 =>	function: 0xf
 		14 =>	function: 0xf
-		15 =>	table: 0xf
+		15 =>	0
 
 		16 =>	z
 		17 =>	function: 0xf
 		18 =>	function: 0xf
-		19 =>	table: 0xf
+		19 =>	1
 
 		20 =>	t
 		21 =>	function: 0xf
 		22 =>	function: 0xf
-		23 =>	table: 0xf
+		23 =>	2
 	}
 ]=]
 
@@ -227,9 +295,13 @@ function Add(event_name, name, func, priority)
 
 	if priority == nil then
 		priority = NORMAL_HOOK
-	else
-		local valid = priority == PRE_HOOK or priority == PRE_HOOK_RETURN or priority == NORMAL_HOOK or priority == POST_HOOK or priority == POST_HOOK_RETURN
-		if not valid then ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")") return end
+	elseif not isnumber(priority) then
+		ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")")
+		return
+	elseif priority < PRE_HOOK then
+		priority = PRE_HOOK
+	elseif priority > POST_HOOK then
+		priority = POST_HOOK
 	end
 
 	local event = events[event_name]
@@ -264,7 +336,7 @@ function Add(event_name, name, func, priority)
 	local insert_pos = (hook_count + 3 --[[hook_count + post_or_return_hook_index + post_hook_index]]) + 1  -- default position is at the end
 
 	for i = 4, hook_count, 4 do
-		if event[i + 3 --[[priority]]][1] > priority[1] then  -- the priority is at the fourth position in each group of four
+		if event[i + 3 --[[priority]]] > priority then  -- the priority is at the fourth position in each group of four
 			insert_pos = i
 			break
 		end
