@@ -934,6 +934,18 @@ end
 -- 	assert(call_count == 1, "call count is wrong: " .. call_count)
 -- end)
 
+-- TEST(function(name)
+-- 	Add(name, "1", function()
+-- 		Remove(name, "1")
+-- 	end)
+
+-- 	Add(name, "2", function()
+-- 		return 1
+-- 	end, POST_HOOK_RETURN)
+
+-- 	Call(name, nil, 1)
+-- end)
+
 -- local test_name = "srlion_hook_test"
 -- function Test()
 -- 	print("Starting hook test...")
