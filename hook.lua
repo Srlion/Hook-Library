@@ -99,7 +99,7 @@ do
 end
 
 Author = "Srlion"
-Version = "1.0.2"
+Version = "1.0.3"
 
 --[=[
 	events[event_name] = {
