@@ -78,42 +78,99 @@ hook.Add("PlayerSay", "post_player_say", function(arguments, sender, text)
 end, POST_HOOK)
 ```
 
-# Benchmark
+# Benchmarks
 #### Using [this simple hook caller](https://github.com/Srlion/gmod-rs-simple-hook-test/tree/master) to do C++ -> Lua hook.Call
 
+## Empty 500 Calls - jit.off() in lua/includes/init.lua
 ```lua
-require("hooktest")
-
 concommand.Add("hooktest", function()
-	local insert = table.insert
-	local tbl = {}
-	for i = 1, 200 do
+	require("hooktest")
+
+	for i = 1, 500 do
 		hook.Add("HOOK_CALL_TEST", tostring(i), function(arg)
-			insert(tbl, i)
 		end)
 	end
 
-	print("Started hook bench test...")
-	local time = HOOK_CALL_TEST()
-	print("hook.Call: " .. time .. "s")
+	print("Number of hooks: " .. table.Count(hook.GetTable().HOOK_CALL_TEST))
+
+	print("Warming up...")
+	HOOK_CALL_TEST()
+
+	local calls_sum = 0
+
+	print("Starting hook bench test...")
+	for i = 1, 6 do
+		calls_sum = calls_sum + HOOK_CALL_TEST()
+	end
+
+	print("hook.Call average time: " .. math.Round(calls_sum / 6, 3) .. " seconds")
 	print("~!")
 end)
 ```
 
 ```
-It's an average time for running the test 6 times
+Srlion's hook.Call: 1.775 seconds
+	Faster than ULX's hook by 56.90%
+	Faster than Default's hook by 325.58%
+	Faster than DLib's hook by 597.46%
 
-Srlion's hook.Call: 4.4750 seconds
-	52.95% faster than default hook.Call
-	130.84% faster than DLib's hook.Call
+ULX's hook.Call: 2.785 seconds
+	Faster than Default's hook by 171.24%
+	Faster than DLib's hook by 344.52%
 
-Default's hook.Call: 6.8447 seconds
-	50.92% faster than DLib's hook.Call
+Default's hook.Call: 7.554 seconds
+	Faster than DLib's hook by 63.89%
 
-DLib's hook.Call: 10.3301 seconds
+DLib's hook.Call: 12.380 seconds
 ```
-### Around 52% faster!!!!!!
+
+## CurTime() 250 Calls
+```lua
+concommand.Add("hooktest", function()
+	require("hooktest")
+
+	local CurTime = CurTime
+	for i = 1, 250 do
+		hook.Add("HOOK_CALL_TEST", tostring(i), function(arg)
+			CurTime()
+		end)
+	end
+
+	print("Number of hooks: " .. table.Count(hook.GetTable().HOOK_CALL_TEST))
+
+	print("Warming up...")
+	HOOK_CALL_TEST()
+
+	local calls_sum = 0
+
+	print("Starting hook bench test...")
+	for i = 1, 6 do
+		calls_sum = calls_sum + HOOK_CALL_TEST()
+	end
+
+	print("hook.Call average time: " .. math.Round(calls_sum / 6, 3) .. " seconds")
+	print("~!")
+end)
+```
+```
+Srlion's hook.Call: 1.775 seconds
+	Faster than ULX's hook by 21.86%
+	Faster than Default's hook by 216.96%
+	Faster than DLib's hook by 326.70%
+
+ULX's hook.Call: 2.163 seconds
+	Faster than Default's hook by 160.10%
+	Faster than DLib's hook by 250.16%
+
+Default's hook.Call: 5.626 seconds
+	Faster than DLib's hook by 34.62%
+
+DLib's hook.Call: 7.574 seconds
+```
 #### Hey, you're just boosting your server for free! No drawbacks, only extra goodies!
-#### Imagine how many hooks get called every frame/second when you have 128 players in your server!
 
 # Tested On [Physgun](https://billing.physgun.com/aff.php?aff=131) Dev Server
+**Gamemode:** Sandbox
+
+- Lua Refresh -> **OFF**
+- Physgun Utils -> **OFF**

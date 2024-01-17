@@ -17,6 +17,7 @@ local ErrorNoHaltWithStack = ErrorNoHaltWithStack
 local print = print
 local timer = timer
 local file = file
+local math = math
 -- local error = error
 
 --[[
@@ -24,35 +25,40 @@ local file = file
 	because when i try to modify a single thing, something breaks and i dont notice it, so i try to remind myself as much as possible
 ]]
 
-local PRE_HOOK = -2; _G.PRE_HOOK = PRE_HOOK
-local PRE_HOOK_RETURN = -1; _G.PRE_HOOK_RETURN = PRE_HOOK_RETURN
-local NORMAL_HOOK = 0; _G.NORMAL_HOOK = NORMAL_HOOK
-local POST_HOOK_RETURN = 1; _G.POST_HOOK_RETURN = POST_HOOK_RETURN
-local POST_HOOK = 2; _G.POST_HOOK = POST_HOOK
+local PRE_HOOK = {-2}
+local PRE_HOOK_RETURN = {-1}
+local NORMAL_HOOK = {0}
+local POST_HOOK_RETURN = {1}
+local POST_HOOK = {2}
 
--- ulib addons support
-HOOK_MONITOR_HIGH = PRE_HOOK
-HOOK_HIGH = PRE_HOOK_RETURN
-HOOK_NORMAL = NORMAL_HOOK
-HOOK_LOW = POST_HOOK_RETURN
-HOOK_MONITOR_LOW = POST_HOOK
-
-local global_table = _G
+local _GLOBAL = _G
 
 module("hook")
 
 local events = {}
 
+local ULIB = false
 do
 	-- ulx/ulib support
 	if file.Exists("ulib/shared/hook.lua", "LUA") then
-		local old_include = global_table.include
-		function global_table.include(f, ...)
+		ULIB = true
+
+		_GLOBAL.HOOK_MONITOR_HIGH = -2
+		_GLOBAL.HOOK_HIGH = -1
+		_GLOBAL.HOOK_NORMAL = 0
+		_GLOBAL.HOOK_LOW = 1
+		_GLOBAL.HOOK_MONITOR_LOW = 2
+
+		POST_HOOK_RETURN = {3}
+		POST_HOOK = {4}
+
+		local old_include = _GLOBAL.include
+		function _GLOBAL.include(f, ...)
 			if f == "ulib/shared/hook.lua" then
 				timer.Simple(0, function()
 					print("Srlion Hook Library: Stopped ULX/ULib from loading it's hook library!")
 				end)
-				global_table.include = old_include
+				_GLOBAL.include = old_include
 				return
 			end
 			return old_include(f, ...)
@@ -98,8 +104,14 @@ do
 	end
 end
 
+_GLOBAL.PRE_HOOK = PRE_HOOK
+_GLOBAL.PRE_HOOK_RETURN = PRE_HOOK_RETURN
+_GLOBAL.NORMAL_HOOK = NORMAL_HOOK
+_GLOBAL.POST_HOOK_RETURN = POST_HOOK_RETURN
+_GLOBAL.POST_HOOK = POST_HOOK
+
 Author = "Srlion"
-Version = "1.0.3"
+Version = "1.1.0"
 
 --[=[
 	events[event_name] = {
@@ -150,7 +162,7 @@ end
 local function post_or_return_hook_index(event)
 	for i = 4, event[1] --[[hook_count]], 4 do
 		local priority = event[i + 3]
-		if priority == POST_HOOK or priority == POST_HOOK_RETURN then
+		if priority == POST_HOOK[1] or priority == POST_HOOK_RETURN[1] then
 			return i
 		end
 	end
@@ -160,7 +172,7 @@ end
 local function post_hook_index(event)
 	for i = 4, event[1] --[[hook_count]], 4 do
 		local priority = event[i + 3]
-		if priority == POST_HOOK then
+		if priority == POST_HOOK[1] then
 			return i
 		end
 	end
@@ -294,15 +306,27 @@ function Add(event_name, name, func, priority)
 		end
 	end
 
-	if priority == nil then
-		priority = NORMAL_HOOK
-	elseif not isnumber(priority) then
-		ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")")
-		return
-	elseif priority < PRE_HOOK then
-		priority = PRE_HOOK
-	elseif priority > POST_HOOK then
-		priority = POST_HOOK
+	if ULIB then
+		local valid = priority == PRE_HOOK or priority == PRE_HOOK_RETURN or priority == NORMAL_HOOK or priority == POST_HOOK or priority == POST_HOOK_RETURN
+		if valid then
+			priority = priority[1]
+		else -- this is taken from ulib/shared/hook.lua Add function
+			priority = priority or 0
+			if not isnumber(priority) then return end
+
+			priority = math.floor(priority)
+			if priority < -2 then priority = -2 end
+			if priority > 2 then priority = 2 end
+		end
+	else
+		if priority == nil then
+			priority = NORMAL_HOOK
+		else
+			local valid = priority == PRE_HOOK or priority == PRE_HOOK_RETURN or priority == NORMAL_HOOK or priority == POST_HOOK or priority == POST_HOOK_RETURN
+			if not valid then ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")") return end
+		end
+
+		priority = priority[1]
 	end
 
 	local event = events[event_name]
