@@ -93,7 +93,6 @@ do
 	if file.Exists("dlib/modules/hook.lua", "LUA") then
 		timer.Simple(0, function()
 			ErrorNoHalt("Srlion Hook Library: DLib is installed, you should remove the bloated addon!\n")
-			ErrorNoHalt("Srlion Hook Library: Billy's relies on Srlion's Hook library so you shouldn't be having DLib! (BLOATED ADDON)\n")
 			ErrorNoHalt("Srlion Hook Library: DLIB is also slower than default hook library, check github.com/srlion/Hook-Library for more info! THIS MEANS IT MAKES YOUR SERVER SLOWER!\n")
 		end)
 	end
@@ -209,9 +208,11 @@ local function copy_event(event, event_name)
 	setmetatable(event, {
 		__index = function(_, key)
 			if key == 1 then -- first element is the number of hooks in the event table
-				return proxy_event[key]
+				return proxy_event[1]
 			elseif key == 2 then -- second element is the index of the first post hook in the event table
-				return proxy_event[key]
+				return proxy_event[2]
+			elseif key == 3 then
+				return proxy_event[3]
 			end
 
 			-- Maps the key to a 1-4 range for 'name', 'func', 'real_func', 'priority'.
