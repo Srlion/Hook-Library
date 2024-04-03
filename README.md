@@ -10,10 +10,7 @@ It **will** improve your server performance.
 # Ulx support!
 Now you can just drop it in your server and will replace ULib's hook library!
 But you will have to watch for warnings that could appear if an addon tries to modify
-```hook.GetULibTable``` directly to fix it.
-
-**IF YOU ARE ON DARKRP WITH ULX THEN WAIT FOR THIS PULL REQUEST TO GET ACCEPTED OR ULX IS GONNA ERROR
-https://github.com/FPtje/FSpectate/pull/21**
+```hook.GetULibTable``` directly to fix it. Otherwise it's just drop in replacement.
 
 # [Steam Workhop](https://steamcommunity.com/sharedfiles/filedetails/?id=1907060869)
 ##### Latest update is not on workshop yet, need to make sure that everything is working as intended to not kill lots of servers.
