@@ -25,11 +25,26 @@ local math = math
 	because when i try to modify a single thing, something breaks and i dont notice it, so i try to remind myself as much as possible
 ]]
 
-local PRE_HOOK = {-2}
-local PRE_HOOK_RETURN = {-1}
-local NORMAL_HOOK = {0}
-local POST_HOOK_RETURN = {1}
-local POST_HOOK = {2}
+do
+	-- this is for addons who think every server only has ulx and supplies numbers for priorities instead of using the constants
+	HOOK_MONITOR_HIGH = -2
+	HOOK_HIGH = -1
+	HOOK_NORMAL = 0
+	HOOK_LOW = 1
+	HOOK_MONITOR_LOW = 2
+
+	PRE_HOOK = {-4}
+	PRE_HOOK_RETURN = {-3}
+	NORMAL_HOOK = {0}
+	POST_HOOK_RETURN = {3}
+	POST_HOOK = {4}
+end
+
+local PRE_HOOK = PRE_HOOK
+local PRE_HOOK_RETURN = PRE_HOOK_RETURN
+local NORMAL_HOOK = NORMAL_HOOK
+local POST_HOOK_RETURN = POST_HOOK_RETURN
+local POST_HOOK = POST_HOOK
 
 local _GLOBAL = _G
 
@@ -37,21 +52,9 @@ module("hook")
 
 local events = {}
 
-local ULIB = false
 do
 	-- ulx/ulib support
 	if file.Exists("ulib/shared/hook.lua", "LUA") then
-		ULIB = true
-
-		_GLOBAL.HOOK_MONITOR_HIGH = -2
-		_GLOBAL.HOOK_HIGH = -1
-		_GLOBAL.HOOK_NORMAL = 0
-		_GLOBAL.HOOK_LOW = 1
-		_GLOBAL.HOOK_MONITOR_LOW = 2
-
-		POST_HOOK_RETURN = {3}
-		POST_HOOK = {4}
-
 		local old_include = _GLOBAL.include
 		function _GLOBAL.include(f, ...)
 			if f == "ulib/shared/hook.lua" then
@@ -74,6 +77,7 @@ do
 					local name = event[i]
 					if name then
 						local priority = event[i + 3]
+						priority = math.Clamp(priority, -2, 2) -- just to make sure it's in the range
 						hooks[priority][name] = event[i + 2] --[[real_func]]
 					end
 				end
@@ -104,11 +108,13 @@ do
 	end
 end
 
-_GLOBAL.PRE_HOOK = PRE_HOOK
-_GLOBAL.PRE_HOOK_RETURN = PRE_HOOK_RETURN
-_GLOBAL.NORMAL_HOOK = NORMAL_HOOK
-_GLOBAL.POST_HOOK_RETURN = POST_HOOK_RETURN
-_GLOBAL.POST_HOOK = POST_HOOK
+local main_priorities = {
+	[PRE_HOOK] = true,
+	[PRE_HOOK_RETURN] = true,
+	[NORMAL_HOOK] = true,
+	[POST_HOOK_RETURN] = true,
+	[POST_HOOK] = true
+}
 
 Author = "Srlion"
 Version = "1.1.0"
@@ -306,27 +312,16 @@ function Add(event_name, name, func, priority)
 		end
 	end
 
-	if ULIB then
-		local valid = priority == PRE_HOOK or priority == PRE_HOOK_RETURN or priority == NORMAL_HOOK or priority == POST_HOOK or priority == POST_HOOK_RETURN
-		if valid then
-			priority = priority[1]
-		else -- this is taken from ulib/shared/hook.lua Add function
-			priority = priority or 0
-			if not isnumber(priority) then return end
-
-			priority = math.floor(priority)
-			if priority < -2 then priority = -2 end
-			if priority > 2 then priority = 2 end
-		end
-	else
-		if priority == nil then
-			priority = NORMAL_HOOK
-		else
-			local valid = priority == PRE_HOOK or priority == PRE_HOOK_RETURN or priority == NORMAL_HOOK or priority == POST_HOOK or priority == POST_HOOK_RETURN
-			if not valid then ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")") return end
-		end
-
+	if isnumber(priority) then
+		priority = math.floor(priority)
+		if priority < -2 then priority = -2 end
+		if priority > 2 then priority = 2 end
+	elseif main_priorities[priority] then
 		priority = priority[1]
+	else
+		ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")")
+		-- we probably don't want to stop the function here because it's not a critical error
+		priority = NORMAL_HOOK[1]
 	end
 
 	local event = events[event_name]
