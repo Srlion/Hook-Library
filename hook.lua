@@ -117,7 +117,7 @@ local main_priorities = {
 }
 
 Author = "Srlion"
-Version = "1.1.0"
+Version = "1.2.0"
 
 --[=[
 	events[event_name] = {
@@ -319,7 +319,9 @@ function Add(event_name, name, func, priority)
 	elseif main_priorities[priority] then
 		priority = priority[1]
 	else
-		ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")")
+		if priority ~= nil then
+			ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")")
+		end
 		-- we probably don't want to stop the function here because it's not a critical error
 		priority = NORMAL_HOOK[1]
 	end
