@@ -117,7 +117,7 @@ local main_priorities = {
 }
 
 Author = "Srlion"
-Version = "1.2.0"
+Version = "1.2.1"
 
 --[=[
 	events[event_name] = {
@@ -471,13 +471,12 @@ function Call(event_name, gm, ...)
 end
 
 local gamemode_cache
-local hook_Call = Call
 function Run(name, ...)
 	-- AVOID HAVING ADDITIONAL C CALLS, SO SIMPLE HOOKS CAN BE EXTRA 2% FASTER
 	if not gamemode_cache then
 		gamemode_cache = gmod and gmod.GetGamemode() or nil
 	end
-	return hook_Call(name, gamemode_cache, ...)
+	return Call(name, gamemode_cache, ...)
 end
 
 -- lots of testing cases are taken from meepen https://github.com/meepen/gmod-hooks-revamped/blob/master/hooksuite.lua
