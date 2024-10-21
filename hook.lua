@@ -10,15 +10,10 @@ local IsValid = IsValid
 local type = type
 local ErrorNoHalt = ErrorNoHalt
 local ErrorNoHaltWithStack = ErrorNoHaltWithStack
--- local assert = assert
--- local table = table
--- local tostring = tostring
--- local pcall = pcall
 local print = print
 local timer = timer
 local file = file
 local math = math
--- local error = error
 
 --[[
 	lots of comments here are so long, just so i can remember why i did something and why i didnt do something else
@@ -117,7 +112,7 @@ local main_priorities = {
 }
 
 Author = "Srlion"
-Version = "1.2.1"
+Version = "1.2.2"
 
 --[=[
 	events[event_name] = {
@@ -317,6 +312,11 @@ function Add(event_name, name, func, priority)
 		if priority < -2 then priority = -2 end
 		if priority > 2 then priority = 2 end
 	elseif main_priorities[priority] then
+		if priority == PRE_HOOK then
+			func = function(...)
+				real_func(...)
+			end
+		end
 		priority = priority[1]
 	else
 		if priority ~= nil then
@@ -482,6 +482,13 @@ end
 -- lots of testing cases are taken from meepen https://github.com/meepen/gmod-hooks-revamped/blob/master/hooksuite.lua
 -- big thanks to him really for his great work
 -- (when i was making the library i was testing lots of random cases and i never noted them down, there were lots of shady cases but unfortunately they are gone)
+
+-- local assert = _GLOBAL.assert
+-- local table = _GLOBAL.table
+-- local tostring = _GLOBAL.tostring
+-- local pcall = _GLOBAL.pcall
+-- local error = _GLOBAL.error
+
 -- local TEST = {}
 
 -- -- this is to check if hooks order is by first to last or last to first
@@ -966,6 +973,22 @@ end
 -- 	Call(name, nil, 1)
 -- end)
 
+-- TEST(function(name)
+-- 	local called = false
+--
+-- 	Add(name, "1", function()
+-- 		return 1
+-- 	end, PRE_HOOK)
+--
+-- 	Add(name, "2", function()
+-- 		called = true
+-- 		return 2
+-- 	end, PRE_HOOK)
+--
+-- 	Call(name)
+-- 	assert(called == true, "hook.Call didn't run the hook or returned the wrong value")
+-- end)
+--
 -- local test_name = "srlion_hook_test"
 -- function Test()
 -- 	print("Starting hook test...")
