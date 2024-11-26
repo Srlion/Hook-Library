@@ -287,7 +287,6 @@ function Remove(event_name, name)
 	end
 end
 
-local hook_Remove = Remove
 function Add(event_name, name, func, priority)
 	if not isstring(event_name) then ErrorNoHaltWithStack("bad argument #1 to 'Add' (string expected, got " .. type(event_name) .. ")") return end
 	if not isfunction(func) then ErrorNoHaltWithStack("bad argument #3 to 'Add' (function expected, got " .. type(func) .. ")") return end
@@ -303,7 +302,7 @@ function Add(event_name, name, func, priority)
 				return real_func(name, ...)
 			end
 
-			hook_Remove(event_name, name)
+			Remove(event_name, name)
 		end
 	end
 
@@ -337,7 +336,7 @@ function Add(event_name, name, func, priority)
 		local pos = find_hook(event, name)
 		-- if hook exists and priority changed then remove the old one because it has to be treated as a new hook
 		if pos and event[pos + 3] ~= priority then
-			hook_Remove(event_name, name)
+			Remove(event_name, name)
 		else
 			-- just update the hook here because nothing changed but the function
 			hook_pos = pos
