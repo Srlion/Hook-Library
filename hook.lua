@@ -228,7 +228,7 @@ local function copy_event(event, event_name)
 			end
 
 			-- Maps the key to a 1-4 range for 'name', 'func', 'real_func', 'priority'.
-			-- we substract 3 from key because first three elements in the table are [table_count, post_or_return_hook_index, post_hook_index]
+			-- we subtract 3 from key because first three elements in the table are [table_count, post_or_return_hook_index, post_hook_index]
 			local relative_index = ((key - 3) - 1) % 4 + 1
 			local name_index = key - (relative_index - 1)
 
