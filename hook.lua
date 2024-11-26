@@ -292,7 +292,7 @@ function Add(event_name, name, func, priority)
 	if not isstring(event_name) then ErrorNoHaltWithStack("bad argument #1 to 'Add' (string expected, got " .. type(event_name) .. ")") return end
 	if not isfunction(func) then ErrorNoHaltWithStack("bad argument #3 to 'Add' (function expected, got " .. type(func) .. ")") return end
 
-	local notValid = name == nil or isnumber(name) or isbool(name) or isfunction(name) or not name.IsValid or not IsValid(name)
+	local notValid = name == nil or isnumber(name) or isbool(name) or isfunction(name) or not name.IsValid
 	if not isstring(name) and notValid then ErrorNoHaltWithStack("bad argument #2 to 'Add' (string expected, got " .. type(name) .. ")") return end
 
 	local real_func = func
