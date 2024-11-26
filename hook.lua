@@ -6,7 +6,6 @@ local isnumber = isnumber
 local isbool = isbool
 local isfunction = isfunction
 local insert = table.insert
-local IsValid = IsValid
 local type = type
 local ErrorNoHalt = ErrorNoHalt
 local ErrorNoHaltWithStack = ErrorNoHaltWithStack
