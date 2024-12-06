@@ -913,7 +913,7 @@ end
 -- end)
 
 -- TEST(function(name)
--- 	local called = 0
+-- 	local called = 1
 -- 	local entity = {
 -- 		IsValid = function()
 -- 			called = called + 1
