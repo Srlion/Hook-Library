@@ -111,7 +111,7 @@ local main_priorities = {
 }
 
 Author = "Srlion"
-Version = "1.2.2"
+Version = "1.2.3"
 
 --[=[
 	events[event_name] = {
