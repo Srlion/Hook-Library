@@ -188,31 +188,39 @@ end
 	2- We make old event table have __index method to make sure if any hook got removed/edited we (stop it from running)/(run the new function)
 ]]
 local function copy_event(event, event_name)
-	local new_event = {}
-	do
-		for i = 1, event[1] + 3 --[[hook_count + post_or_return_hook_index + post_hook_index]] do
-			local v = event[i]
-			-- this check because hook.Remove calls this without rearranging the event table
-			-- so we have to make sure that we don't add nil values to the new event table
-			if v ~= nil then
-				insert(new_event, v)
-			end
-		end
-
-		-- we subtract 4 because hook.Remove calls copy_event without subtracting the hook_count
-		new_event[1] = event[1] - 4
-		new_event[2] = post_or_return_hook_index(event)
-		new_event[3] = post_hook_index(event)
-	end
-
 	-- we use proxies here just to make __index work
 	-- https://stackoverflow.com/a/3122136
 	local proxy_event = {}
+	local new_event = {}
 	do
-		for i = 1, event[1] + 3 --[[hook_count + post_or_return_hook_index + post_hook_index]] do
-			proxy_event[i] = event[i]
+		local count = event[1]
+		local porhi, phi
+
+		local j = 1
+		for i = 1, count + 3 --[[hook_count + post_or_return_hook_index + post_hook_index]] do
+			local v = event[i]
+			proxy_event[i] = v
+			-- this check because hook.Remove calls this without rearranging the event table
+			-- so we have to make sure that we don't add nil values to the new event table
+			if v ~= nil then
+				if i >= 7 --[[if i is 4 then phi and porhi will be invalid]] and i % 4 == 0 then
+					if not porhi and (v == POST_HOOK[1] or v == POST_HOOK_RETURN[1]) then
+						porhi = i - 3 --[[name]]
+					end
+					if not phi and v == POST_HOOK[1] then
+						phi = i - 3 --[[name]]
+					end
+				end
+				new_event[j] = v
+				j = j + 1
+			end
 			event[i] = nil
 		end
+
+		-- we subtract 4 because hook.Remove calls copy_event without subtracting the hook_count
+		new_event[1] = count - 4
+		new_event[2] = porhi or 0
+		new_event[3] = phi or 0
 	end
 
 	-- REMOVE THIS COMMENT BEFORE PUSLIHING (THIS IS JUST A REMINDER TO FIND A NEW WAY TO DO THIS HACKY WAY)
