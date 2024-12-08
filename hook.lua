@@ -319,8 +319,9 @@ function Add(event_name, name, func, priority)
 		if priority > 2 then priority = 2 end
 	elseif main_priorities[priority] then
 		if priority == PRE_HOOK then
+			local old_func = func
 			func = function(...)
-				real_func(...)
+				old_func(...)
 			end
 		end
 		priority = priority[1]
