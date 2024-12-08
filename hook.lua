@@ -399,12 +399,18 @@ function GetTable()
 	return new_events
 end
 
-local function internal_call(event_name, gm, ...)
+function Call(event_name, gm, ...)
 	local event = events[event_name]
-	if event ~= nil then
-		local hook_count = event[1]
-		local post_or_return_index = event[2]
+	if not event then -- fast path
+		if not gm then return end
+		local gm_func = gm[event_name]
+		if not gm_func then return end
+		return gm_func(gm, ...)
+	end
 
+	local hook_count = event[1]
+	local post_or_return_index = event[2]
+	local hook_name, a, b, c, d, e, f; do
 		-- if there is a post hook, stop before it otherwise just use hook count
 		local loop_end_index = post_or_return_index > 0 and post_or_return_index - 4 or hook_count
 
@@ -412,54 +418,43 @@ local function internal_call(event_name, gm, ...)
 			local func = event[i + 1]
 			-- we check here for the function because the hook could have been removed while hook.Call was running
 			if func then
-				local a, b, c, d, e, f = func(...)
-				if a ~= nil then
-					return event[i] --[[name]], a, b, c, d, e, f
+				-- this is a trick that gives a small boost by avoiding escaping the loop
+				local a2, b2, c2, d2, e2, f2 = func(...)
+				if a2 ~= nil then
+					hook_name, a, b, c, d, e, f = event[i] --[[name]], a2, b2, c2, d2, e2, f2
+					break
 				end
+			end
+		end
+
+		if not hook_name and gm then
+			local gm_func = gm[event_name]
+			if gm_func then
+				hook_name, a, b, c, d, e, f = gm, gm_func(gm, ...)
 			end
 		end
 	end
 
-	if gm then
-		local gm_func = gm[event_name]
-		if gm_func then
-			return gm, gm_func(gm, ...)
-		end
-	end
-end
+	if post_or_return_index < 1 then return a, b, c, d, e, f end
 
-function Call(event_name, gm, ...)
-	local event = events[event_name]
-
-	local hook_name, a, b, c, d, e, f = internal_call(event_name, gm, ...)
-
-	if not event then return a, b, c, d, e, f end
-
-	local post_or_return_index = event[2]
-	if post_or_return_index == 0 then return a, b, c, d, e, f end
-
-	local hook_count = event[1]
 	local post_index = event[3]
 
 	local returned_values = {hook_name, a, b, c, d, e, f}
 
-	if post_or_return_index > 0 then
-		local loop_end_index = post_index > 0 and post_index - 4 or hook_count
-		for i = post_or_return_index, loop_end_index, 4 do
-			local func = event[i + 1]
-			if func then
-				local new_a, new_b, new_c, new_d, new_e, new_f = func(returned_values, ...)
-				if new_a ~= nil then
-					a, b, c, d, e, f = new_a, new_b, new_c, new_d, new_e, new_f
-					returned_values[1] = event[i] --[[name]]
-					returned_values[2] = new_a
-					returned_values[3] = new_b
-					returned_values[4] = new_c
-					returned_values[5] = new_d
-					returned_values[6] = new_e
-					returned_values[7] = new_f
-					break
-				end
+	for i = post_or_return_index, post_index > 0 and post_index - 4 or hook_count --[[loop_end_index]], 4 do
+		local func = event[i + 1]
+		if func then
+			local new_a, new_b, new_c, new_d, new_e, new_f = func(returned_values, ...)
+			if new_a ~= nil then
+				a, b, c, d, e, f = new_a, new_b, new_c, new_d, new_e, new_f
+				returned_values[1] = event[i] --[[name]]
+				returned_values[2] = new_a
+				returned_values[3] = new_b
+				returned_values[4] = new_c
+				returned_values[5] = new_d
+				returned_values[6] = new_e
+				returned_values[7] = new_f
+				break
 			end
 		end
 	end
