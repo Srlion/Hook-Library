@@ -318,6 +318,12 @@ function Add(event_name, name, func, priority)
 		priority = math.floor(priority)
 		if priority < -2 then priority = -2 end
 		if priority > 2 then priority = 2 end
+		if priority == -2 or priority == 2 then -- ulx doesn't allow returning anything in monitor hooks
+			local old_func = func
+			func = function(...)
+				old_func(...)
+			end
+		end
 	elseif main_priorities[priority] then
 		if priority == PRE_HOOK then
 			local old_func = func
