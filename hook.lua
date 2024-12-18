@@ -321,7 +321,7 @@ function Add(event_name, name, func, priority)
 	elseif main_priorities[priority] then
 		if priority == PRE_HOOK then
 			local old_func = func
-			func = function(...)
+			func = function(...) -- this is done to stop the function from returning anything
 				old_func(...)
 			end
 		end
@@ -403,7 +403,6 @@ end
 
 local gamemode_cache
 function Run(name, ...)
-	-- AVOID HAVING ADDITIONAL C CALLS, SO SIMPLE HOOKS CAN BE EXTRA 2% FASTER
 	if not gamemode_cache then
 		gamemode_cache = gmod and gmod.GetGamemode() or nil
 	end
