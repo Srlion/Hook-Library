@@ -499,6 +499,13 @@ end
 
 function ProtectedCall(event_name, gm, ...)
 	local event = events[event_name]
+	if not event then -- fast path
+		if not gm then return end
+		local gm_func = gm[event_name]
+		if not gm_func then return end
+		GProtectedCall(gm_func, gm, ...)
+		return
+	end
 
 	local hook_count = event[1]
 	local post_or_return_index = event[2]
