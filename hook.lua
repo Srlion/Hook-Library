@@ -72,7 +72,10 @@ do
 					local name = event[i]
 					if name then
 						local priority = event[i + 3]
-						priority = math.Clamp(priority, -2, 2) -- just to make sure it's in the range
+						-- just to make sure it's in the range
+						-- this could make an issue with addons that retrieve all hooks and call them, as POST_HOOK(_RETURN)
+						-- will be called randomly and their first argument won't be the "returned values" table
+						priority = math.Clamp(priority, -2, 2)
 						hooks[priority][name] = event[i + 2] --[[real_func]]
 					end
 				end
