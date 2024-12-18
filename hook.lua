@@ -13,6 +13,7 @@ local print = print
 local timer = timer
 local file = file
 local math = math
+local GProtectedCall = ProtectedCall
 
 --[[
 	lots of comments here are so long, just so i can remember why i did something and why i didnt do something else
@@ -400,6 +401,22 @@ function GetTable()
 	return new_events
 end
 
+local gamemode_cache
+function Run(name, ...)
+	-- AVOID HAVING ADDITIONAL C CALLS, SO SIMPLE HOOKS CAN BE EXTRA 2% FASTER
+	if not gamemode_cache then
+		gamemode_cache = gmod and gmod.GetGamemode() or nil
+	end
+	return Call(name, gamemode_cache, ...)
+end
+
+function ProtectedRun(name, ...)
+	if not gamemode_cache then
+		gamemode_cache = gmod and gmod.GetGamemode() or nil
+	end
+	return ProtectedCall(name, gamemode_cache, ...)
+end
+
 function Call(event_name, gm, ...)
 	local event = events[event_name]
 	if not event then -- fast path
@@ -472,11 +489,47 @@ function Call(event_name, gm, ...)
 	return a, b, c, d, e, f
 end
 
-local gamemode_cache
-function Run(name, ...)
-	-- AVOID HAVING ADDITIONAL C CALLS, SO SIMPLE HOOKS CAN BE EXTRA 2% FASTER
-	if not gamemode_cache then
-		gamemode_cache = gmod and gmod.GetGamemode() or nil
+function ProtectedCall(event_name, gm, ...)
+	local event = events[event_name]
+
+	local hook_count = event[1]
+	local post_or_return_index = event[2]
+	do
+		local loop_end_index = post_or_return_index > 0 and post_or_return_index - 4 or hook_count
+		for i = 4, loop_end_index, 4 do
+			local func = event[i + 1]
+			if func then
+				GProtectedCall(func, ...)
+			end
+		end
+
+		if gm then
+			local gm_func = gm[event_name]
+			if gm_func then
+				GProtectedCall(gm_func, gm, ...)
+			end
+		end
 	end
-	return Call(name, gamemode_cache, ...)
+
+	if post_or_return_index < 1 then return end
+
+	local returned_values = {nil, nil, nil, nil, nil, nil, nil}
+
+	local post_index = event[3]
+
+	for i = post_or_return_index, post_index > 0 and post_index - 4 or hook_count --[[loop_end_index]], 4 do
+		local func = event[i + 1]
+		if func then
+			GProtectedCall(func, returned_values, ...)
+		end
+	end
+
+	if post_index > 0 then
+		for i = post_index, hook_count, 4 do
+			local func = event[i + 1]
+			if func then
+				GProtectedCall(func, returned_values, ...)
+			end
+		end
+	end
 end
