@@ -199,7 +199,8 @@ local function copy_event(event, event_name)
 	local new_event = {}
 	do
 		local count = event[1]
-		local porhi, phi
+		local porhi -- post_or_return_hook_index
+		local phi -- post_hook_index
 
 		local j = 1
 		for i = 1, count + 3 --[[hook_count + post_or_return_hook_index + post_hook_index]] do
@@ -208,12 +209,12 @@ local function copy_event(event, event_name)
 			-- this check because hook.Remove calls this without rearranging the event table
 			-- so we have to make sure that we don't add nil values to the new event table
 			if v ~= nil then
-				if i >= 7 --[[if i is 4 then phi and porhi will be invalid]] and i % 4 == 0 then
+				if i > 3 then -- we start checking for priority after the first three elements
 					if not porhi and (v == POST_HOOK[1] or v == POST_HOOK_RETURN[1]) then
-						porhi = i - 3 --[[name]]
+						porhi = j - 3 --[[name]]
 					end
 					if not phi and v == POST_HOOK[1] then
-						phi = i - 3 --[[name]]
+						phi = j - 3 --[[name]]
 					end
 				end
 				new_event[j] = v
