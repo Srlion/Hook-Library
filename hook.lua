@@ -46,6 +46,7 @@ local _GLOBAL = _G
 module("hook")
 
 local events = {}
+RAW_EVENTS = events -- ONLY USE IT FOR DEBUGGING
 
 do
 	-- ulx/ulib support
