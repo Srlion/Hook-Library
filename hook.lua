@@ -1,27 +1,28 @@
 local gmod = gmod
+local math = math
+local table = table
+local file = file
 local pairs = pairs
 local setmetatable = setmetatable
 local isstring = isstring
 local isnumber = isnumber
 local isbool = isbool
 local isfunction = isfunction
-local insert = table.insert
 local type = type
-local ErrorNoHalt = ErrorNoHalt
 local ErrorNoHaltWithStack = ErrorNoHaltWithStack
 local print = print
-local timer = timer
-local file = file
-local math = math
 local GProtectedCall = ProtectedCall
+local tostring = tostring
+local error = error
 
---[[
-	lots of comments here are so long, just so i can remember why i did something and why i didnt do something else
-	because when i try to modify a single thing, something breaks and i dont notice it, so i try to remind myself as much as possible
-]]
+local _GLOBAL = _G
+
+local EMPTY_FUNC = function() end
+
+-- ADD ALL SUPPORT HERE BACK
 
 do
-	-- this is for addons who think every server only has ulx and supplies numbers for priorities instead of using the constants
+	-- this is for addons that think every server only has ulx and supplies numbers for priorities instead of using the constants
 	HOOK_MONITOR_HIGH = -2
 	HOOK_HIGH = -1
 	HOOK_NORMAL = 0
@@ -41,244 +42,121 @@ local NORMAL_HOOK = NORMAL_HOOK
 local POST_HOOK_RETURN = POST_HOOK_RETURN
 local POST_HOOK = POST_HOOK
 
-local _GLOBAL = _G
+local NORMAL_PRIORITIES_ORDER = {
+	[PRE_HOOK] = 1, [HOOK_MONITOR_HIGH] = 2, [PRE_HOOK_RETURN] = 3, [HOOK_HIGH] = 4,
+	[NORMAL_HOOK] = 5, [HOOK_NORMAL] = 5, [HOOK_LOW] = 6, [HOOK_MONITOR_LOW] = 7,
+	-- Special hooks, they don't use an order
+}
+
+local EVENTS_LISTS = {
+	-- Special hooks
+	[POST_HOOK_RETURN] = 2,
+	[POST_HOOK] = 3,
+}
+for k, v in pairs(NORMAL_PRIORITIES_ORDER) do
+	EVENTS_LISTS[k] = 1
+end
+
+local MAIN_PRIORITIES = {[PRE_HOOK] = true, [PRE_HOOK_RETURN] = true, [NORMAL_HOOK] = true, [POST_HOOK_RETURN] = true, [POST_HOOK] = true}
+
+local PRIORITIES_NAMES = {
+	[PRE_HOOK] = "PRE_HOOK", [HOOK_MONITOR_HIGH] = "HOOK_MONITOR_HIGH", [PRE_HOOK_RETURN] = "PRE_HOOK_RETURN",
+	[HOOK_HIGH] = "HOOK_HIGH", [NORMAL_HOOK] = "NORMAL_HOOK", [HOOK_NORMAL] = "HOOK_NORMAL",
+	[HOOK_LOW] = "HOOK_LOW", [HOOK_MONITOR_LOW] = "HOOK_MONITOR_LOW", [POST_HOOK_RETURN] = "POST_HOOK_RETURN", [POST_HOOK] = "POST_HOOK",
+}
 
 module("hook")
 
-local events = {}
-RAW_EVENTS = events -- ONLY USE IT FOR DEBUGGING
-
-do
-	-- ulx/ulib support
-	if file.Exists("ulib/shared/hook.lua", "LUA") then
-		local old_include = _GLOBAL.include
-		function _GLOBAL.include(f, ...)
-			if f == "ulib/shared/hook.lua" then
-				timer.Simple(0, function()
-					print("Srlion Hook Library: Stopped ULX/ULib from loading it's hook library!")
-				end)
-				_GLOBAL.include = old_include
-				return
-			end
-			return old_include(f, ...)
-		end
-
-		function GetULibTable()
-			local new_events = {}
-
-			for event_name, event in pairs(events) do
-				local hooks = {[-2] = {}, [-1] = {}, [0] = {}, [1] = {}, [2] = {}}
-				-- event starts with 4 because event[1] is the number of hooks in the event table, ...etc
-				for i = 4, event[1] --[[hook_count]], 4 do
-					local name = event[i]
-					if name then
-						local priority = event[i + 3]
-						-- just to make sure it's in the range
-						-- this could make an issue with addons that retrieve all hooks and call them, as POST_HOOK(_RETURN)
-						-- will be called randomly and their first argument won't be the "returned values" table
-						priority = math.Clamp(priority, -2, 2)
-						hooks[priority][name] = event[i + 2] --[[real_func]]
-					end
-				end
-				new_events[event_name] = hooks
-			end
-
-			local monitor_ulib_events = {}
-			setmetatable(monitor_ulib_events, {
-				__newindex = function(_, key, value)
-					ErrorNoHaltWithStack("An addon is trying to modify ULib Table directly, use this trace to find the addon and fix it!")
-					new_events[key] = value
-				end,
-				__index = function(_, key)
-					return new_events[key]
-				end
-			})
-
-			return monitor_ulib_events
-		end
-	end
-
-	-- bloated hooks warning
-	if file.Exists("dlib/modules/hook.lua", "LUA") then
-		timer.Simple(0, function()
-			ErrorNoHalt("Srlion Hook Library: DLib is installed, you should remove the bloated addon!\n")
-			ErrorNoHalt("Srlion Hook Library: DLIB is also slower than default hook library, check github.com/srlion/Hook-Library for more info! THIS MEANS IT MAKES YOUR SERVER SLOWER!\n")
-		end)
-	end
-end
-
-local main_priorities = {
-	[PRE_HOOK] = true,
-	[PRE_HOOK_RETURN] = true,
-	[NORMAL_HOOK] = true,
-	[POST_HOOK_RETURN] = true,
-	[POST_HOOK] = true
-}
-
 Author = "Srlion"
-Version = "1.3.0"
+Version = "2.0.0"
 
---[=[
-	events[event_name] = {
-		1 => 20 (hook_count)
-			this is the number of hooks in the event table, doesn't count itself nor post_or_return_hook_index
-		2 => 16 (post_or_return_hook_index)
-			this is the index of the first post(_return) hook in the event table
-		3 => 20 (post_hook_index)
-			this is the index of the first post hook in the event table
+local events = {}
 
-		4 =>	a (name)
-		5 =>	function: 0xf (func)
-		6 =>	function: 0xf (real_func)
-		7 =>	0 (priority)
-
-		8 =>	c
-		9 =>	function: 0xf
-		10 =>	function: 0xf
-		11 =>	0
-
-		12 =>	b
-		13 =>	function: 0xf
-		14 =>	function: 0xf
-		15 =>	0
-
-		16 =>	z
-		17 =>	function: 0xf
-		18 =>	function: 0xf
-		19 =>	1
-
-		20 =>	t
-		21 =>	function: 0xf
-		22 =>	function: 0xf
-		23 =>	2
-	}
-]=]
-
-local function find_hook(event, name)
-	for i = 4, event[1] --[[hook_count]], 4 do
-		local hook_name = event[i]
-		if hook_name ~= nil and hook_name == name then
-			return i
+local node_meta = {
+	-- will only be called to retrieve the function
+	__index = function(node, key)
+		if key ~= 0 then -- this should never happen
+			error("attempt to index a node with a key that is not 0: " .. tostring(key))
 		end
-	end
-end
+		-- we need to check if the hook is still valid, if priority changed OR if the hook was removed from the list, we check from events table
+		local event = node.event
+		local hook_table = event[node.name]
+		if not hook_table then return EMPTY_FUNC end -- the hook was removed
 
--- this is used to find the index of the first post(_return) hook in the event table
-local function post_or_return_hook_index(event)
-	for i = 4, event[1] --[[hook_count]], 4 do
-		local priority = event[i + 3]
-		if priority == POST_HOOK[1] or priority == POST_HOOK_RETURN[1] then
-			return i
+		if hook_table.priority ~= node.priority then
+			return EMPTY_FUNC
 		end
+
+		return hook_table.func -- return the new/up-to-date function
 	end
-	return 0
-end
-
-local function post_hook_index(event)
-	for i = 4, event[1] --[[hook_count]], 4 do
-		local priority = event[i + 3]
-		if priority == POST_HOOK[1] then
-			return i
-		end
-	end
-	return 0
-end
-
---[[
-	we are making a new event table so we don't mess up anything when
-	adding/removing hooks while hook.Call is running, this is how it works:
-
-	1- When (adding/removing a hook)/(editing a hook priority), we create a new event table to avoid messing up hook.Call call order if it's running,
-	and the old event table will be shadowed and can only be accessed from "hook.Call" if it's running
-	2- We make old event table have __index method to make sure if any hook got removed/edited we (stop it from running)/(run the new function)
-]]
-local function copy_event(event, event_name)
-	-- we use proxies here just to make __index work
-	-- https://stackoverflow.com/a/3122136
-	local proxy_event = {}
-	local new_event = {}
-	do
-		local count = event[1]
-		local porhi -- post_or_return_hook_index
-		local phi -- post_hook_index
-
-		local j = 1
-		for i = 1, count + 3 --[[hook_count + post_or_return_hook_index + post_hook_index]] do
-			local v = event[i]
-			proxy_event[i] = v
-			-- this check because hook.Remove calls this without rearranging the event table
-			-- so we have to make sure that we don't add nil values to the new event table
-			if v ~= nil then
-				if i > 3 then -- we start checking for priority after the first three elements
-					if not porhi and (v == POST_HOOK[1] or v == POST_HOOK_RETURN[1]) then
-						porhi = j - 3 --[[name]]
-					end
-					if not phi and v == POST_HOOK[1] then
-						phi = j - 3 --[[name]]
-					end
-				end
-				new_event[j] = v
+}
+local function CopyPriorityList(self, priority)
+	local old_list = self[EVENTS_LISTS[priority]]
+	local new_list = {}; do
+		local j = 0
+		for i = 1, old_list[0 --[[length]]] do
+			local node = old_list[i]
+			if not node.removed then -- don't copy removed hooks
 				j = j + 1
+				local new_node = {
+					[0 --[[func]]] = node[0 --[[func]]],
+					event = node.event,
+					name = node.name,
+					priority = node.priority,
+					idx = j,
+				}
+				new_list[j] = new_node
+				-- we need to update the node reference in the event table
+				local hook_table = node.event[node.name]
+				hook_table.node = new_node
 			end
-			event[i] = nil
+			-- we need to delete the function reference so __index can work properly
+			-- we do it to all nodes because they can't be updated when hooks are added/removed, so they need to be able to check using __index
+			node[0 --[[func]]] = nil
+			setmetatable(node, node_meta)
 		end
-
-		-- we subtract 4 because hook.Remove calls copy_event without subtracting the hook_count
-		new_event[1] = count - 4
-		new_event[2] = porhi or 0
-		new_event[3] = phi or 0
+		new_list[0 --[[length]]] = j -- update the length
 	end
+	local list_index = EVENTS_LISTS[priority] -- 1 for normal hooks, 2 for post return hooks, 3 for post hooks
+	self[list_index] = new_list
+end
 
-	-- REMOVE THIS COMMENT BEFORE PUSLIHING (THIS IS JUST A REMINDER TO FIND A NEW WAY TO DO THIS HACKY WAY)
-	-- NEXT GMOD UPDATE REMOVES setmetatable (CONFIRMED BY GARY)
-	setmetatable(event, {
-		__index = function(_, key)
-			if key == 1 then -- first element is the number of hooks in the event table
-				return proxy_event[1]
-			elseif key == 2 then -- second element is the index of the first post hook in the event table
-				return proxy_event[2]
-			elseif key == 3 then
-				return proxy_event[3]
-			end
-
-			-- Maps the key to a 1-4 range for 'name', 'func', 'real_func', 'priority'.
-			-- we subtract 3 from key because first three elements in the table are [table_count, post_or_return_hook_index, post_hook_index]
-			local relative_index = ((key - 3) - 1) % 4 + 1
-			local name_index = key - (relative_index - 1)
-
-			-- we need to get the name from proxy table so we can do checks on newest table, eg. if hook was removed or priority changed
-			local name = proxy_event[name_index]
-			if not name then return end
-
-			-- this is the newest event table that we check from if hook was removed or priority changed
-			local newest_event = events[event_name]
-
-			-- if hook got removed from latest table then don't run it
-			local pos = find_hook(newest_event, name)
-			if not pos then return end
-
-			-- if hook priority changed in newest table then it should be treated as a new added hook (like it was just added inside the hook.Call), don't run it
-			if newest_event[pos + 3 --[[priority]]] ~= proxy_event[name_index + 3 --[[priority]]] then return end
-
-			-- we return from newest table because it could have been updated
-			return newest_event[pos + (relative_index - 1)]
-
-			--[=[
-				(relative_index - 1) will be one of '1:name' '2:func' '3:real_func' '4:priority'
-				pos will be (name) position in newest table, eg.
-
-				pos = 3 (name), relative_index = 2 (func)
-					- it will be 3 + (2 - 1) = 4 which is the position for function in the newest table
-
-				pos = 7 (name), relative_index = 4 (priority)
-					- it will be 7 + (4 - 1) = 10 which is the position for priority in the newest table
-
-				you can check an example of how hook tables look like at the beginning
-			]=]
+local function new_event(name)
+	if not events[name] then
+		local function GetPriorityList(self, priority)
+			return self[EVENTS_LISTS[priority]]
 		end
-	})
 
-	return new_event
+		-- [0] = list length
+		local lists = {
+			[1] = {[0] = 0}, -- normal hooks
+			[2] = {[0] = 0}, -- post return hooks
+			[3] = {[0] = 0}, -- post hooks
+
+			CopyPriorityList = CopyPriorityList,
+			GetPriorityList = GetPriorityList,
+		}
+
+		-- create the event table, we use [0] as hook names can't be numbers
+		events[name] = {[0] = lists}
+	end
+	return events[name]
+end
+
+function GetTable()
+	local new_table = {}
+	for event_name, event in pairs(events) do
+		local hooks = {}
+		for i = 1, 3 do
+			local list = event[0][i]
+			for j = 1, list[0 --[[length]]] do
+				local node = list[j]
+				hooks[node.name] = event[node.name].real_func
+			end
+		end
+		new_table[event_name] = hooks
+	end
+	return new_table
 end
 
 function Remove(event_name, name)
@@ -288,16 +166,18 @@ function Remove(event_name, name)
 	if not isstring(name) and notValid then ErrorNoHaltWithStack("bad argument #2 to 'Remove' (string expected, got " .. type(name) .. ")") return end
 
 	local event = events[event_name]
-	if not event then return end
+	if not event then return end -- no event with that name
 
-	local pos = find_hook(event, name)
-	if pos then
-		event[pos] = nil --[[name]]
-		event[pos + 1] = nil --[[func]]
-		event[pos + 2] = nil --[[real_func]]
-		event[pos + 3] = nil --[[priority]]
-		events[event_name] = copy_event(event, event_name)
-	end
+	local hook_table = event[name]
+	if not hook_table then return end -- no hook with that name
+
+	hook_table.node.removed = true
+
+	-- we need to overwrite the priority list with the new one, to make sure we don't mess up with ongoing iterations inside hook.Call/ProtectedCall
+	-- we basically copy the list without the removed hook
+	event[0 --[[lists]]]:CopyPriorityList(hook_table.priority)
+
+	event[name] = nil -- remove the hook from the event table
 end
 
 function Add(event_name, name, func, priority)
@@ -314,7 +194,6 @@ function Add(event_name, name, func, priority)
 			if isvalid and isvalid(name) then
 				return real_func(name, ...)
 			end
-
 			Remove(event_name, name)
 		end
 	end
@@ -329,87 +208,74 @@ function Add(event_name, name, func, priority)
 				old_func(...)
 			end
 		end
-	elseif main_priorities[priority] then
+	elseif MAIN_PRIORITIES[priority] then
 		if priority == PRE_HOOK then
 			local old_func = func
 			func = function(...) -- this is done to stop the function from returning anything
 				old_func(...)
 			end
 		end
-		priority = priority[1]
+		priority = priority
 	else
 		if priority ~= nil then
 			ErrorNoHaltWithStack("bad argument #4 to 'Add' (priority expected, got " .. type(priority) .. ")")
 		end
 		-- we probably don't want to stop the function here because it's not a critical error
-		priority = NORMAL_HOOK[1]
+		priority = NORMAL_HOOK
 	end
 
-	local event = events[event_name]
-	if not event then
-		event = {0 --[[hook_count]], 0 --[[post_or_return_hook_index]], 0 --[[post_hook_index]]}
-		events[event_name] = event
-	end
+	local event = new_event(event_name)
 
-	local hook_pos
-	if event then
-		local pos = find_hook(event, name)
-		-- if hook exists and priority changed then remove the old one because it has to be treated as a new hook
-		if pos and event[pos + 3] ~= priority then
+	-- check if the hook already exists
+	do
+		local hook_info = event[name]
+		if hook_info then
+			-- check if priority is different, if not then we just update the function
+			if hook_info.priority == priority then
+				hook_info.func = func
+				hook_info.real_func = real_func
+				hook_info.node[0 --[[func]]] = func -- update the function in the node
+				return
+			end
+			-- if priority is different then we consider it a new hook
 			Remove(event_name, name)
 		else
-			-- just update the hook here because nothing changed but the function
-			hook_pos = pos
+			-- create a new hook list to use, we need to shadow the old one
+			event[0]:CopyPriorityList(priority)
 		end
 	end
 
-	-- the event table could have been changed the check above, check Remove function
-	event = events[event_name]
+	local hook_list = event[0]:GetPriorityList(priority)
 
-	-- this just updates the hook if it exists and nothing changed but the function
-	if hook_pos then
-		event[hook_pos + 1] = func
-		event[hook_pos + 2] = real_func
-		return
-	end
+	local hk_n = hook_list[0 --[[length]]] + 1
+	local node = {
+		[0 --[[func]]] = func,
+		event = event,
+		name = name,
+		priority = priority,
+		idx = hk_n, -- this is used to keep order of the hooks based on when they were added, to have a consistent order
+	}
+	hook_list[hk_n] = node
+	hook_list[0 --[[length]]] = hk_n
 
-	local hook_count = event[1]
-	local insert_pos = (hook_count + 3 --[[hook_count + post_or_return_hook_index + post_hook_index]]) + 1  -- default position is at the end
+	event[name] = {
+		name = name,
+		priority = priority,
+		func = func,
+		real_func = real_func,
+		node = node,
+	}
 
-	for i = 4, hook_count, 4 do
-		if event[i + 3 --[[priority]]] > priority then  -- the priority is at the fourth position in each group of four
-			insert_pos = i
-			break
-		end
-	end
-
-	insert(event, insert_pos, name)
-	insert(event, insert_pos + 1, func)
-	insert(event, insert_pos + 2, real_func)
-	insert(event, insert_pos + 3, priority)
-
-	event[1] = hook_count + 4
-	event[2] = post_or_return_hook_index(event)
-	event[3] = post_hook_index(event)
-end
-
-function GetTable()
-	local new_events = {}
-
-	for event_name, event in pairs(events) do
-		local hooks = {}
-
-		-- event starts with 4 because event[1] is the number of hooks in the event table, ...etc
-		for i = 4, event[1] --[[hook_count]], 4 do
-			local name = event[i]
-			if name then
-				hooks[name] = event[i + 2] --[[real_func]]
+	if NORMAL_PRIORITIES_ORDER[priority] then
+		table.sort(hook_list, function(a, b)
+			local a_order = NORMAL_PRIORITIES_ORDER[a.priority]
+			local b_order = NORMAL_PRIORITIES_ORDER[b.priority]
+			if a_order == b_order then
+				return a.idx < b.idx
 			end
-		end
-		new_events[event_name] = hooks
+			return a_order < b_order
+		end)
 	end
-
-	return new_events
 end
 
 local gamemode_cache
@@ -436,63 +302,54 @@ function Call(event_name, gm, ...)
 		return gm_func(gm, ...)
 	end
 
-	local hook_count = event[1]
-	local post_or_return_index = event[2]
-	local hook_name, a, b, c, d, e, f; do
-		-- if there is a post hook, stop before it otherwise just use hook count
-		local loop_end_index = post_or_return_index > 0 and post_or_return_index - 4 or hook_count
+	local lists = event[0 --[[lists]]]
 
-		for i = 4, loop_end_index, 4 do
-			local func = event[i + 1]
-			-- we check here for the function because the hook could have been removed while hook.Call was running
-			if func then
-				-- this is a trick that gives a small boost by avoiding escaping the loop
-				local a2, b2, c2, d2, e2, f2 = func(...)
-				if a2 ~= nil then
-					hook_name, a, b, c, d, e, f = event[i] --[[name]], a2, b2, c2, d2, e2, f2
-					break
-				end
-			end
-		end
+	local hook_name, a, b, c, d, e, f
 
-		if not hook_name and gm then
-			local gm_func = gm[event_name]
-			if gm_func then
-				hook_name, a, b, c, d, e, f = gm, gm_func(gm, ...)
-			end
-		end
-	end
-
-	if post_or_return_index < 1 then return a, b, c, d, e, f end
-
-	local post_index = event[3]
-
-	local returned_values = {hook_name, a, b, c, d, e, f}
-
-	for i = post_or_return_index, post_index > 0 and post_index - 4 or hook_count --[[loop_end_index]], 4 do
-		local func = event[i + 1]
-		if func then
-			local new_a, new_b, new_c, new_d, new_e, new_f = func(returned_values, ...)
-			if new_a ~= nil then
-				a, b, c, d, e, f = new_a, new_b, new_c, new_d, new_e, new_f
-				returned_values[1] = event[i] --[[name]]
-				returned_values[2] = new_a
-				returned_values[3] = new_b
-				returned_values[4] = new_c
-				returned_values[5] = new_d
-				returned_values[6] = new_e
-				returned_values[7] = new_f
+	do -- normal hooks
+		local normal_hooks = lists[1]
+		for i = 1, normal_hooks[0 --[[length]]] do
+			local node = normal_hooks[i]
+			local n_a, n_b, n_c, n_d, n_e, n_f = node[0 --[[func]]](...)
+			if n_a ~= nil then
+				hook_name, a, b, c, d, e, f = node.name, n_a, n_b, n_c, n_d, n_e, n_f
 				break
 			end
 		end
 	end
 
-	if post_index > 0 then
-		for i = post_index, hook_count, 4 do
-			local func = event[i + 1]
-			if func then
-				func(returned_values, ...)
+	if not hook_name and gm then
+		local gm_func = gm[event_name]
+		if gm_func then
+			hook_name, a, b, c, d, e, f = gm, gm_func(gm, ...)
+		end
+	end
+
+	-- we need to check if there is any post(return) hooks, if not then we can return early
+	if lists[2][0 --[[length]]] == 0 and lists[3][0 --[[length]]] == 0 then
+		return a, b, c, d, e, f
+	end
+
+	local returned_values = {hook_name, a, b, c, d, e, f}
+
+	do -- post return hooks
+		local post_return_hooks = lists[2]
+		for i = 1, post_return_hooks[0 --[[length]]] do
+			local node = post_return_hooks[i]
+			local n_a, n_b, n_c, n_d, n_e, n_f = node[0 --[[func]]](returned_values, ...)
+			if n_a ~= nil then
+				a, b, c, d, e, f = n_a, n_b, n_c, n_d, n_e, n_f
+				returned_values = {node.name, a, b, c, d, e, f}
+				break
 			end
+		end
+	end
+
+	do -- post hooks
+		local post_hooks = lists[3]
+		for i = 1, post_hooks[0 --[[length]]] do
+			local node = post_hooks[i]
+			node[0 --[[func]]](returned_values, ...)
 		end
 	end
 
@@ -509,44 +366,112 @@ function ProtectedCall(event_name, gm, ...)
 		return
 	end
 
-	local hook_count = event[1]
-	local post_or_return_index = event[2]
-	do
-		local loop_end_index = post_or_return_index > 0 and post_or_return_index - 4 or hook_count
-		for i = 4, loop_end_index, 4 do
-			local func = event[i + 1]
-			if func then
-				GProtectedCall(func, ...)
-			end
-		end
+	local lists = event[0 --[[lists]]]
 
-		if gm then
-			local gm_func = gm[event_name]
-			if gm_func then
-				GProtectedCall(gm_func, gm, ...)
-			end
+	do
+		local normal_hooks = lists[1]
+		for i = 1, normal_hooks[0 --[[length]]] do
+			local node = normal_hooks[i]
+			GProtectedCall(node[0 --[[func]]], ...)
 		end
 	end
 
-	if post_or_return_index < 1 then return end
+	if gm then
+		local gm_func = gm[event_name]
+		if gm_func then
+			GProtectedCall(gm_func, gm, ...)
+		end
+	end
 
 	local returned_values = {nil, nil, nil, nil, nil, nil, nil}
 
-	local post_index = event[3]
-
-	for i = post_or_return_index, post_index > 0 and post_index - 4 or hook_count --[[loop_end_index]], 4 do
-		local func = event[i + 1]
-		if func then
-			GProtectedCall(func, returned_values, ...)
+	do
+		local post_return_hooks = lists[2]
+		for i = 1, post_return_hooks[0 --[[length]]] do
+			local node = post_return_hooks[i]
+			GProtectedCall(node[0 --[[func]]], returned_values, ...)
 		end
 	end
 
-	if post_index > 0 then
-		for i = post_index, hook_count, 4 do
-			local func = event[i + 1]
-			if func then
-				GProtectedCall(func, returned_values, ...)
-			end
+	do
+		local post_hooks = lists[3]
+		for i = 1, post_hooks[0 --[[length]]] do
+			local node = post_hooks[i]
+			GProtectedCall(node[0 --[[func]]], returned_values, ...)
 		end
+	end
+end
+
+function Debug(event_name)
+	local event = events[event_name]
+	if not event then
+		print("No event with that name")
+		return
+	end
+
+	local lists = event[0]
+	print("------START------")
+	print("event:", event_name)
+	for i = 1, 3 do
+		local list = lists[i]
+		for j = 1, list[0 --[[length]]] do
+			local node = list[j]
+			print("----------")
+			print("   name:", node.name)
+			print("   func:", node[0])
+			print("   real_func:", event[node.name].real_func)
+			print("   priority:", PRIORITIES_NAMES[node.priority])
+			print("   idx:", node.idx)
+		end
+	end
+	print("-------END-------")
+end
+
+do -- ulx and dlib
+	-- ulx/ulib support
+	if file.Exists("ulib/shared/hook.lua", "LUA") then
+		local old_include = _GLOBAL.include
+		function _GLOBAL.include(f, ...)
+			if f == "ulib/shared/hook.lua" then
+				timer.Simple(0, function()
+					print("Srlion Hook Library: Stopped ULX/ULib from loading it's hook library!")
+				end)
+				_GLOBAL.include = old_include
+				return
+			end
+			return old_include(f, ...)
+		end
+
+		-- this could make an issue with addons that retrieve all hooks and call them, as POST_HOOK(_RETURN)
+		-- will be called randomly and their first argument won't be the "returned values" table
+		function GetULibTable()
+			local new_events = {}
+
+			for event_name, event in pairs(events) do
+				local hooks = {[-2] = {}, [-1] = {}, [0] = {}, [1] = {}, [2] = {}}
+				for i = 1, 3 do
+					local list = event[0][i]
+					for j = 1, list[0 --[[length]]] do
+						local node = list[j]
+						local priority = node.priority
+						priority = isnumber(priority) and priority or priority[1]
+						priority = math.Clamp(priority, -2, 2) -- just to make sure it's in the range
+						local hook_table = event[node.name]
+						hooks[priority][node.name] = hook_table.real_func
+					end
+				end
+				new_events[event_name] = hooks
+			end
+
+			return new_events
+		end
+	end
+
+	-- bloated hooks warning
+	if file.Exists("dlib/modules/hook.lua", "LUA") then
+		timer.Simple(0, function()
+			ErrorNoHalt("Srlion Hook Library: DLib is installed, you should remove the bloated addon!\n")
+			ErrorNoHalt("Srlion Hook Library: DLIB is also slower than default hook library, check github.com/srlion/Hook-Library for more info! THIS MEANS IT MAKES YOUR SERVER SLOWER!\n")
+		end)
 	end
 end

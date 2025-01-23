@@ -1,13 +1,12 @@
 -- lots of testing cases are taken from meepen https://github.com/meepen/gmod-hooks-revamped/blob/master/hooksuite.lua
 -- big thanks to him really for his great work
 -- (when i was making the library i was testing lots of random cases and i never noted them down, there were lots of shady cases but unfortunately they are gone)
+-- Add it to the bottom of hook.lua file and then run hook.Test() in console to run the tests
 
 local assert = _GLOBAL.assert
-local table = _GLOBAL.table
-local tostring = _GLOBAL.tostring
+local insert = table.insert
 local pcall = _GLOBAL.pcall
-local error = _GLOBAL.error
-local Call, Run, Add, Remove = hook.Call, hook.Run, hook.Add, hook.Remove
+local Call, Run, Add, Remove = Call, Run, Add, Remove
 
 local TEST = {}
 
