@@ -19,8 +19,6 @@ local _GLOBAL = _G
 
 local EMPTY_FUNC = function() end
 
--- ADD ALL SUPPORT HERE BACK
-
 do
 	-- this is for addons that think every server only has ulx and supplies numbers for priorities instead of using the constants
 	HOOK_MONITOR_HIGH = -2
