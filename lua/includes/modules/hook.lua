@@ -293,6 +293,8 @@ function ProtectedRun(name, ...)
 	return ProtectedCall(name, gamemode_cache, ...)
 end
 
+local returned_values = {nil, nil, nil, nil, nil, nil, nil}
+
 function Call(event_name, gm, ...)
 	local event = events[event_name]
 	if not event then -- fast path
@@ -330,16 +332,29 @@ function Call(event_name, gm, ...)
 		return a, b, c, d, e, f
 	end
 
-	local returned_values = {hook_name, a, b, c, d, e, f}
-
 	do -- post return hooks
 		local post_return_hooks = lists[2]
-		for i = 1, post_return_hooks[0 --[[length]]] do
+		local n_prh = post_return_hooks[0 --[[length]]]
+		if n_prh ~= 0 then
+			returned_values[1] = hook_name
+			returned_values[2] = a
+			returned_values[3] = b
+			returned_values[4] = c
+			returned_values[5] = d
+			returned_values[6] = e
+			returned_values[7] = f
+		end
+		for i = 1, n_prh do
 			local node = post_return_hooks[i]
 			local n_a, n_b, n_c, n_d, n_e, n_f = node[0 --[[func]]](returned_values, ...)
 			if n_a ~= nil then
-				a, b, c, d, e, f = n_a, n_b, n_c, n_d, n_e, n_f
-				returned_values = {node.name, a, b, c, d, e, f}
+				returned_values[1] = node.name
+				a, returned_values[2] = n_a, n_a
+				b, returned_values[3] = n_b, n_b
+				c, returned_values[4] = n_c, n_c
+				d, returned_values[5] = n_d, n_d
+				e, returned_values[6] = n_e, n_e
+				f, returned_values[7] = n_f, n_f
 				break
 			end
 		end
@@ -347,7 +362,17 @@ function Call(event_name, gm, ...)
 
 	do -- post hooks
 		local post_hooks = lists[3]
-		for i = 1, post_hooks[0 --[[length]]] do
+		local n_ph = post_hooks[0 --[[length]]]
+		if n_ph ~= 0 and not returned_values then
+			returned_values[1] = hook_name
+			returned_values[2] = a
+			returned_values[3] = b
+			returned_values[4] = c
+			returned_values[5] = d
+			returned_values[6] = e
+			returned_values[7] = f
+		end
+		for i = 1, n_ph do
 			local node = post_hooks[i]
 			node[0 --[[func]]](returned_values, ...)
 		end
@@ -383,7 +408,9 @@ function ProtectedCall(event_name, gm, ...)
 		end
 	end
 
-	local returned_values = {nil, nil, nil, nil, nil, nil, nil}
+	for i = 1, 7 do
+		returned_values[i] = nil
+	end
 
 	do
 		local post_return_hooks = lists[2]
