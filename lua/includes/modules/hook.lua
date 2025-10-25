@@ -363,7 +363,7 @@ function Call(event_name, gm, ...)
 	do -- post hooks
 		local post_hooks = lists[3]
 		local n_ph = post_hooks[0 --[[length]]]
-		if n_ph ~= 0 and not returned_values then
+		if n_ph ~= 0 then
 			returned_values[1] = hook_name
 			returned_values[2] = a
 			returned_values[3] = b
