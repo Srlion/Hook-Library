@@ -13,7 +13,7 @@ But you will have to watch for warnings that could appear if an addon tries to m
 ```hook.GetULibTable``` directly to fix it. Otherwise it's just drop in replacement.
 
 # [Steam Workhop](https://steamcommunity.com/sharedfiles/filedetails/?id=1907060869)
-##### Latest update is not on workshop yet, need to make sure that everything is working as intended to not kill lots of servers.
+# IF YOUR ADDON DEPENDS ON MY HOOK LIBRARY THEN ASK CLIENTS TO USE THE WORKSHOP ONE, **DO NOT INCLUDE THIS WITH YOUR ADDON**
 
 # Installation
 Add this in: **addons/custom_hook/lua/includes/modules/hook.lua**
