@@ -16,6 +16,7 @@ local print = print
 local GProtectedCall = ProtectedCall
 local tostring = tostring
 local error = error
+local rawget = rawget
 
 local _GLOBAL = _G
 
@@ -115,7 +116,7 @@ local function CopyPriorityList(self, priority)
 		local j = 0
 		for i = 1, old_list[ 0 --[[length]] ] do
 			local node = old_list[i]
-			if not node.removed then -- don't copy removed hooks
+			if not rawget(node, "removed") then -- don't copy removed hooks
 				j = j + 1
 				local new_node = {
 					[ 0 --[[func]] ] = node[ 0 --[[func]] ],
