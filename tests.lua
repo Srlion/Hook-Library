@@ -90,7 +90,7 @@ TEST(function(name)
 
 	Call(name, {})
 
-	assert( pcall(Call, name, {}), "Should be stable after concurrent add/remove during call")
+	assert(pcall(Call, name, {}), "Should be stable after concurrent add/remove during call")
 end)
 
 -- Nested hok calls
@@ -107,11 +107,12 @@ end)
 -- Hooks with variable arguments
 TEST(function(name)
 	local args_received = false
-	Add(name, "varargs", function(...) args_received = {...} end)
+	Add(name, "varargs", function(...) args_received = { ... } end)
 
 	Call(name, {}, 1, 2, 3)
 
-	assert(#args_received == 3 and args_received[1] == 1 and args_received[2] == 2 and args_received[3] == 3, "Hooks should handle variable arguments correctly")
+	assert(#args_received == 3 and args_received[1] == 1 and args_received[2] == 2 and args_received[3] == 3,
+		"Hooks should handle variable arguments correctly")
 end)
 
 -- Hook call with gamemode function and no hooks
@@ -226,10 +227,14 @@ TEST(function(name)
 	end)
 
 	Call(name)
-	assert(a == true and b == nil and b2 == true and c == true, "something is wrong, called: a: " .. tostring(a) .. " b: " .. tostring(b) .. " b2: " .. tostring(b2) .. " c: " .. tostring(c))
+	assert(a == true and b == nil and b2 == true and c == true,
+		"something is wrong, called: a: " ..
+		tostring(a) .. " b: " .. tostring(b) .. " b2: " .. tostring(b2) .. " c: " .. tostring(c))
 	a, b, b2, c = nil, nil, nil, nil
 	Call(name)
-	assert(a == nil and b == nil and b2 == true and c == true, "something is wrong, called: a: " .. tostring(a) .. " b: " .. tostring(b) .. " b2: " .. tostring(b2) .. " c: " .. tostring(c))
+	assert(a == nil and b == nil and b2 == true and c == true,
+		"something is wrong, called: a: " ..
+		tostring(a) .. " b: " .. tostring(b) .. " b2: " .. tostring(b2) .. " c: " .. tostring(c))
 end)
 
 -- Test adding a hook inside hook.Call to make sure that the new added hook wont be called in the current hook.Call
@@ -247,10 +252,12 @@ TEST(function(name)
 	end)
 
 	Call(name)
-	assert(a == true and b == true and c == nil, "something is wrong, called: a: " .. tostring(a) .. " b: " .. tostring(b) .. " c: " .. tostring(c))
+	assert(a == true and b == true and c == nil,
+		"something is wrong, called: a: " .. tostring(a) .. " b: " .. tostring(b) .. " c: " .. tostring(c))
 	a, b, c = nil, nil, nil
 	Call(name)
-	assert(a == true and b == true and c == true, "something is wrong, called: a: " .. tostring(a) .. " b: " .. tostring(b) .. " c: " .. tostring(c))
+	assert(a == true and b == true and c == true,
+		"something is wrong, called: a: " .. tostring(a) .. " b: " .. tostring(b) .. " c: " .. tostring(c))
 end)
 
 -- Test calling with no return values in normal hook, gm should run
@@ -272,7 +279,9 @@ TEST(function(name)
 		post_called = true
 	end, POST_HOOK_RETURN)
 
-	assert(Call(name, gm_table) == nil and normal_called == true and post_called == true and gm_called == true, "something is wrong: normal_called: " .. tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
+	assert(Call(name, gm_table) == nil and normal_called == true and post_called == true and gm_called == true,
+		"something is wrong: normal_called: " ..
+		tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
 end)
 
 -- Test calling with return values in normal hook, gm should not run
@@ -296,7 +305,11 @@ TEST(function(name)
 	end, POST_HOOK_RETURN)
 
 	local returned = Call(name, gm_table)
-	assert(returned == "NORMAL_HOOK" and normal_called == true and post_called == true and gm_called == nil, "something is wrong: returned: " .. tostring(returned) .. " normal_called: " .. tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
+	assert(returned == "NORMAL_HOOK" and normal_called == true and post_called == true and gm_called == nil,
+		"something is wrong: returned: " ..
+		tostring(returned) ..
+		" normal_called: " ..
+		tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
 end)
 
 -- Test calling with no return values in normal hook, and gm returns values
@@ -320,7 +333,11 @@ TEST(function(name)
 	end, POST_HOOK_RETURN)
 
 	local returned = Call(name, gm_table)
-	assert(returned == "GM_RETURN" and normal_called == true and post_called == true and gm_called == true, "something is wrong: returned: " .. tostring(returned) .. " normal_called: " .. tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
+	assert(returned == "GM_RETURN" and normal_called == true and post_called == true and gm_called == true,
+		"something is wrong: returned: " ..
+		tostring(returned) ..
+		" normal_called: " ..
+		tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
 end)
 
 -- Test calling with post hook modifies normal hook return, gm shouldnt run
@@ -345,7 +362,11 @@ TEST(function(name)
 	end, POST_HOOK_RETURN)
 
 	local returned = Call(name, gm_table)
-	assert(returned == "POST_HOOK_RETURN" and normal_called == true and post_called == true and gm_called == nil, "something is wrong: returned: " .. tostring(returned) .. " normal_called: " .. tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
+	assert(returned == "POST_HOOK_RETURN" and normal_called == true and post_called == true and gm_called == nil,
+		"something is wrong: returned: " ..
+		tostring(returned) ..
+		" normal_called: " ..
+		tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
 end)
 
 -- Test calling with post hook modifies gm function return
@@ -370,7 +391,11 @@ TEST(function(name)
 	end, POST_HOOK_RETURN)
 
 	local returned = Call(name, gm_table)
-	assert(returned == "POST_HOOK_RETURN" and normal_called == true and post_called == true and gm_called == true, "something is wrong: returned: " .. tostring(returned) .. " normal_called: " .. tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
+	assert(returned == "POST_HOOK_RETURN" and normal_called == true and post_called == true and gm_called == true,
+		"something is wrong: returned: " ..
+		tostring(returned) ..
+		" normal_called: " ..
+		tostring(normal_called) .. " post_called: " .. tostring(post_called) .. " gm_called: " .. tostring(gm_called))
 end)
 
 TEST(function(name)
@@ -392,13 +417,17 @@ TEST(function(name)
 	end, NORMAL_HOOK)
 
 	Add(name, "POST_HOOK_RETURN", function(returned_values, arg1, arg2, arg3)
-		assert(returned_values[1] == "NORMAL_HOOK" and returned_values[2] == "testing_returns" and arg1 == 1 and arg2 == 2 and arg3 == 3, "POST_HOOK_RETURN didn't get the right argument")
+		assert(
+			returned_values[1] == "NORMAL_HOOK" and returned_values[2] == "testing_returns" and arg1 == 1 and arg2 == 2 and
+			arg3 == 3, "POST_HOOK_RETURN didn't get the right argument")
 		insert(call_orders, POST_HOOK_RETURN)
 		return "testing_post_return"
 	end, POST_HOOK_RETURN)
 
 	Add(name, "POST_HOOK", function(returned_values, arg1, arg2, arg3)
-		assert(returned_values[1] == "POST_HOOK_RETURN" and returned_values[2] == "testing_post_return" and arg1 == 1 and arg2 == 2 and arg3 == 3, "POST_HOOK didn't get the right argument")
+		assert(
+			returned_values[1] == "POST_HOOK_RETURN" and returned_values[2] == "testing_post_return" and arg1 == 1 and
+			arg2 == 2 and arg3 == 3, "POST_HOOK didn't get the right argument")
 		insert(call_orders, POST_HOOK)
 	end, POST_HOOK)
 
