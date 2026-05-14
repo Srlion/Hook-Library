@@ -168,9 +168,3 @@ Default's hook.Call: 5.626 seconds
 DLib's hook.Call: 7.574 seconds
 ```
 #### Hey, you're just boosting your server for free! No drawbacks, only extra goodies!
-
-# Tested On [Physgun](https://billing.physgun.com/aff.php?aff=131) Dev Server
-**Gamemode:** Sandbox
-
-- Lua Refresh -> **OFF**
-- Physgun Utils -> **OFF**
