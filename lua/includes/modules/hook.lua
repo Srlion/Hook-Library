@@ -347,7 +347,8 @@ function Call(event_name, gm, ...)
 			local node = normal_hooks[i]
 			local n_a, n_b, n_c, n_d, n_e, n_f = node[ 0 --[[func]] ](...)
 			if n_a ~= nil then
-				hook_name, a, b, c, d, e, f = node.name, n_a, n_b, n_c, n_d, n_e, n_f
+				hook_name = node.name
+				a = n_a; b = n_b; c = n_c; d = n_d; e = n_e; f = n_f
 				break
 			end
 		end
@@ -356,35 +357,32 @@ function Call(event_name, gm, ...)
 	if not hook_name and gm then
 		local gm_func = gm[event_name]
 		if gm_func then
-			hook_name, a, b, c, d, e, f = gm, gm_func(gm, ...)
+			hook_name = gm
+			a, b, c, d, e, f = gm_func(gm, ...)
 		end
 	end
 
-	-- we need to check if there is any post(return) hooks, if not then we can return early
-	if lists[2][ 0 --[[length]] ] == 0 and lists[3][ 0 --[[length]] ] == 0 then
-		return a, b, c, d, e, f
-	end
-
-	local returned_values = { hook_name, a, b, c, d, e, f }
-
-	do -- post return hooks
+	do -- post(return) hooks, skipped entirely when there are none
 		local post_return_hooks = lists[2]
-		for i = 1, post_return_hooks[ 0 --[[length]] ] do
-			local node = post_return_hooks[i]
-			local n_a, n_b, n_c, n_d, n_e, n_f = node[ 0 --[[func]] ](returned_values, ...)
-			if n_a ~= nil then
-				a, b, c, d, e, f = n_a, n_b, n_c, n_d, n_e, n_f
-				returned_values = { node.name, a, b, c, d, e, f }
-				break
-			end
-		end
-	end
+		local n = post_return_hooks[ 0 --[[length]] ]
+		if n ~= 0 or lists[3][ 0 --[[length]] ] ~= 0 then
+			local returned_values = { hook_name, a, b, c, d, e, f }
 
-	do -- post hooks
-		local post_hooks = lists[3]
-		for i = 1, post_hooks[ 0 --[[length]] ] do
-			local node = post_hooks[i]
-			node[ 0 --[[func]] ](returned_values, ...)
+			for i = 1, n do
+				local node = post_return_hooks[i]
+				local n_a, n_b, n_c, n_d, n_e, n_f = node[ 0 --[[func]] ](returned_values, ...)
+				if n_a ~= nil then
+					a = n_a; b = n_b; c = n_c; d = n_d; e = n_e; f = n_f
+					returned_values = { node.name, a, b, c, d, e, f }
+					break
+				end
+			end
+
+			local post_hooks = lists[3]
+			for i = 1, post_hooks[ 0 --[[length]] ] do
+				local node = post_hooks[i]
+				node[ 0 --[[func]] ](returned_values, ...)
+			end
 		end
 	end
 
